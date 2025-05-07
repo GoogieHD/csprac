@@ -1,42 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CS2 Prac</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center px-4">
 
-  <div class="w-full max-w-xl bg-gray-800 rounded-2xl shadow-xl p-6 text-center space-y-6">
-    <h1 class="text-3xl font-bold text-green-400">CS2 Practice Session</h1>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center px-4 py-8">
 
-    <div class="space-y-2">
-      <input
-        id="nameInput"
-        type="text"
-        placeholder="Enter your name"
-        class="w-full px-4 py-2 rounded-lg text-black"
-      />
-      <button
-        id="attendBtn"
-        class="w-full bg-green-600 hover:bg-green-700 font-bold py-2 px-4 rounded-lg transition duration-200"
-      >
+  <main class="w-full max-w-xl bg-gray-800 rounded-2xl shadow-2xl p-6 space-y-6">
+    <header class="text-center">
+      <h1 class="text-3xl font-extrabold text-green-400 tracking-tight">
+        CS2 Practice Session
+      </h1>
+      <p class="text-sm text-gray-400 mt-1">Tuesdays & Sundays only</p>
+    </header>
+
+    <section class="space-y-4">
+      <label for="nameInput" class="block text-left text-sm font-medium text-gray-200">
+        Your Name
+      </label>
+      <input id="nameInput" type="text" placeholder="Enter your name"
+        class="w-full px-4 py-2 rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400"
+        autocomplete="off" />
+      <button id="attendBtn"
+        class="w-full bg-green-600 hover:bg-green-700 font-bold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-green-400">
         Attend
       </button>
-    </div>
+    </section>
 
-    <div id="playerList" class="text-left">
-      <h2 class="text-xl font-semibold mb-2">Players in Queue:</h2>
+    <section id="playerList" class="text-left">
+      <h2 class="text-xl font-semibold text-white mb-2">Players in Queue</h2>
       <ul id="playerUl" class="list-disc list-inside space-y-1 text-gray-300"></ul>
-    </div>
-
-    <footer class="text-sm text-gray-400 pt-4">
-      <p>Only active during Tuesday & Sunday practice sessions.</p>
-    </footer>
-  </div>
+    </section>
+  </main>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="main.js"></script>
 </body>
+
 </html>

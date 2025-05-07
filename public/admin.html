@@ -1,75 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>CS2 Admin Panel</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  </head>
-  <body
-    class="bg-gray-950 text-white min-h-screen flex flex-col items-center justify-center px-4"
-  >
-    <div
-      class="w-full max-w-2xl bg-gray-800 rounded-2xl shadow-xl p-6 text-center space-y-6"
-    >
-      <h1 class="text-3xl font-bold text-red-400">Admin Control Panel</h1>
 
-      <div class="space-y-2">
-        <input
-          id="adminNameInput"
-          type="text"
-          placeholder="(Optional) Join as player"
-          class="w-full px-4 py-2 rounded-lg text-black"
-        />
-        <button
-          id="adminJoinBtn"
-          class="w-full bg-red-600 hover:bg-red-700 font-bold py-2 px-4 rounded-lg transition duration-200"
-        >
-          Join as Player
-        </button>
-      </div>
+<head>
+  <meta charset="UTF-8" />
+  <title>CS2 Admin Panel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
 
-      <div id="adminDisplayArea" class="w-full">
-        <!-- This will be populated dynamically -->
-      </div>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center px-4 py-8">
+  <main class="w-full max-w-2xl bg-gray-800 rounded-2xl shadow-2xl p-6 space-y-6">
+    <header class="text-center">
+      <h1 class="text-3xl font-extrabold text-red-400 tracking-tight">
+        Admin Control Panel
+      </h1>
+      <p class="text-sm text-gray-400 mt-1">Control team settings and map veto</p>
+    </header>
 
-      <div class="text-left">
-        <label for="teamModeSelect" class="block mb-1 font-semibold"
-          >Team Selection Mode</label
-        >
-        <select
-          id="teamModeSelect"
-          class="w-full px-4 py-2 rounded-lg text-black"
-        >
-          <option value="random">Random</option>
-          <option value="captains">Captains</option>
-        </select>
-      </div>
-
-      <div class="text-left">
-        <label for="mapPoolInput" class="block mb-1 font-semibold"
-          >Map Pool (comma-separated)</label
-        >
-        <input
-          id="mapPoolInput"
-          class="w-full px-4 py-2 rounded-lg text-black"
-          value="Mirage, Inferno, Nuke, Overpass, Ancient, Dust 2, Cache, Cobblestone, Season, Anubis"
-        />
-      </div>
-
-      <button
-        id="adminStartBtn"
-        class="bg-green-600 hover:bg-green-700 w-full font-bold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50"
-      >
-        Start Session
+    <section class="space-y-2">
+      <label for="adminNameInput" class="block text-left text-sm font-medium text-gray-200">
+        Join as Player (optional)
+      </label>
+      <input id="adminNameInput" type="text" placeholder="Enter your name"
+        class="w-full px-4 py-2 rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400" />
+      <button id="adminJoinBtn"
+        class="w-full bg-red-600 hover:bg-red-700 font-bold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-red-400">
+        Join as Player
       </button>
+    </section>
 
-      <footer class="text-sm text-gray-400 pt-4">
-        <p>This panel is for authorized admins only.</p>
-      </footer>
-    </div>
+    <section class="space-y-4">
+      <label for="teamModeSelect" class="block text-left text-sm font-medium text-gray-200">
+        Team Selection Mode
+      </label>
+      <select id="teamModeSelect"
+        class="w-full px-4 py-2 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-red-400">
+        <option value="random">Random</option>
+        <option value="captains">Captains</option>
+      </select>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="admin.js"></script>
-  </body>
+      <label for="mapPoolInput" class="block text-left text-sm font-medium text-gray-200 mt-4">
+        Map Pool (comma-separated)
+      </label>
+      <input id="mapPoolInput"
+        class="w-full px-4 py-2 rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400"
+        value="Mirage, Inferno, Nuke, Overpass, Ancient, Dust 2, Cache, Cobblestone, Season, Anubis" />
+    </section>
+
+    <button id="adminStartBtn"
+      class="bg-green-600 hover:bg-green-700 w-full font-bold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-400">
+      Start Session
+    </button>
+
+    <section id="adminDisplayArea" class="w-full">
+      <!-- Dynamic session data goes here -->
+    </section>
+
+    <footer class="text-sm text-gray-400 pt-4 text-center">
+      <p>This panel is for authorized admins only.</p>
+    </footer>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="admin.js"></script>
+</body>
+
 </html>
