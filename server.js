@@ -4,10 +4,24 @@ const { Server } = require("socket.io");
 
 const SessionManager = require("./src/logic/SessionManager");
 // Add fake players for testing
-const DEFAULT_FAKE_PLAYERS = 8;
-
-for (let i = 1; i <= DEFAULT_FAKE_PLAYERS; i++) {
-  SessionManager.addPlayer(`fake-${i}`, `Bot_${i}`);
+const DEFAULT_FAKE_PLAYER_NAMES = [
+  "ScratchFiveK",
+  "Googie",
+  "Slurp",
+  "AncientOldie",
+  "Joakim",
+  "Rattle",
+  "Shenzi",
+  "audeaeaeamus",
+  "Brick",
+  "Jorgen"
+];
+for (let i = 0; i < DEFAULT_FAKE_PLAYERS; i++) {
+  const fakePlayer = {
+    id: `fakePlayer${i}`,
+    name: DEFAULT_FAKE_PLAYER_NAMES[i] || `FakePlayer${i}`,
+  };
+  SessionManager.addPlayer(fakePlayer.id, fakePlayer.name);
 }
 
 const app = express();
