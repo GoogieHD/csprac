@@ -15,10 +15,8 @@ app.use(express.static("public"));
 
 const DEFAULT_FAKE_PLAYER_NAMES = [
   "ScratchFiveK", "Googie", "Slurp", "AncientOldie", "Joakim",
-  "Rattle", "Shenzi", "audeaeaeamus", "Brick", "Jorgen"
-];
-
-const DEFAULT_FAKE_PLAYERS = DEFAULT_FAKE_PLAYER_NAMES.length;
+  "Rattle", "Shenzi", "audeaeaeamus"
+]; // Reduced to 8 players
 
 DEFAULT_FAKE_PLAYER_NAMES.forEach((name, i) => {
   SessionManager.addPlayer(`fakePlayer${i}`, name);
