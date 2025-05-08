@@ -15,7 +15,7 @@ attendBtn.onclick = () => {
   }
 };
 
-// 🟨 Update player pool
+// Enhance player list with animations
 socket.on("playerPoolUpdate", (players) => {
   let foundSelf = false;
 
@@ -23,9 +23,9 @@ socket.on("playerPoolUpdate", (players) => {
     <h2 class="text-xl font-semibold mb-2 text-left">Players in Queue:</h2>
     <ul class="list-disc list-inside space-y-1 text-gray-300 text-left">
       ${players.map((p) => {
-    if (p.name === playerName) foundSelf = true;
-    return `<li>${p.name}</li>`;
-  }).join("")}
+        if (p.name === playerName) foundSelf = true;
+        return `<li class="animate-fade-in">${p.name}</li>`;
+      }).join("")}
     </ul>
   `;
 
