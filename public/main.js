@@ -36,12 +36,12 @@ socket.on("playerPoolUpdate", (players) => {
   }
 });
 
-// 🟥 You are a captain
+// You are a captain
 socket.on("youAreCaptain", () => {
   alert("You have been chosen as a Captain! Prepare to pick your team.");
 });
 
-// 🟦 Draft started — pick a teammate
+// Draft started — pick a teammate
 socket.on("yourTurnToPick", ({ availablePlayers }) => {
   playerList.innerHTML = `
     <h2 class="text-xl font-semibold mb-2">Pick a teammate</h2>
