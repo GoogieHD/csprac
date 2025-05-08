@@ -1,41 +1,83 @@
+require("dotenv").config();
+// ──────────────────────────────────────────────────────
+
 const express = require("express");
 const http = require("http");
+const session = require("express-session");
 const { Server } = require("socket.io");
+const path = require("path");
 
 const SessionManager = require("./src/logic/SessionManager");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
-const PORT = 3000;
 
+// ─────── Express Middleware ───────
 app.use(express.static("public"));
+app.use(express.urlencoded({ extended: true }));
 
-// ─── Test Players (Optional) ──────────────────────────
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: true,
+  })
+);
 
-const DEFAULT_FAKE_PLAYER_NAMES = [
-  "ScratchFiveK", "Googie", "Slurp", "AncientOldie", "Joakim",
-  "Rattle", "Shenzi", "Brick", 
-];
 
-const DEFAULT_FAKE_PLAYERS = DEFAULT_FAKE_PLAYER_NAMES.length;
+// ─────── Admin Credentials ───────
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const PORT = process.env.PORT || 3000;
 
-DEFAULT_FAKE_PLAYER_NAMES.forEach((name, i) => {
-  SessionManager.addPlayer(`fakePlayer${i}`, name);
+
+// ─────── Auth Middleware ───────
+function isAuthenticated(req, res, next) {
+  if (req.session && req.session.isAdmin) {
+    return next();
+  }
+  return res.redirect("/admin-login.html");
+}
+
+// ─────── Routes ───────
+app.get("/admin", isAuthenticated, (req, res) => {
+  res.sendFile(path.join(__dirname, "/public/admin.html"));
 });
 
-// ─── Socket.io Logic ──────────────────────────────────
+app.post("/admin/login", (req, res) => {
+  const { username, password } = req.body;
+  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+    req.session.isAdmin = true;
+    res.redirect("/admin");
+  } else {
+    return res.status(401).send("Unauthorized: Invalid credentials");
+  }
+});
 
+app.get("/admin/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.redirect("/admin-login.html");
+  });
+});
+
+// ─────── Fake Players ───────
+if (process.env.NODE_ENV === "development") {
+  const DEFAULT_FAKE_PLAYER_NAMES = [ "Dev1", "Dev2", "Dev3", "Dev4", "Dev5", "Dev6", "Dev7", "Dev8" ];
+  DEFAULT_FAKE_PLAYER_NAMES.forEach((name, i) => {
+    SessionManager.addPlayer(`fakePlayer${i}`, name);
+  });
+}
+
+// ─────── Socket.io ───────
 io.on("connection", (socket) => {
-  console.log(`🔌 Client connected: ${socket.id}`);
+  console.log(`🔌 Connected: ${socket.id}`);
 
-  // ─── Join Player Pool ──────────────────────────────
   socket.on("attend", (name) => {
     const player = SessionManager.addPlayer(socket.id, name);
     if (player) {
       io.emit("playerPoolUpdate", SessionManager.getPlayerList());
-  
-      // Re-send draft state if already ongoing
+
       if (SessionManager.draft) {
         socket.emit("draftUpdate", {
           teamA: SessionManager.draft.teamA,
@@ -43,8 +85,7 @@ io.on("connection", (socket) => {
           availablePlayers: SessionManager.draft.availablePlayers,
           currentCaptain: SessionManager.draft.currentCaptain,
         });
-  
-        // Also let the picking captain resume
+
         if (SessionManager.draft.currentCaptain === socket.id) {
           socket.emit("yourTurnToPick", {
             teamA: SessionManager.draft.teamA,
@@ -54,8 +95,7 @@ io.on("connection", (socket) => {
           });
         }
       }
-  
-      // Re-send map if already chosen
+
       const finalMap = SessionManager.getFinalMap?.();
       if (finalMap) {
         socket.emit("mapChosen", {
@@ -66,9 +106,7 @@ io.on("connection", (socket) => {
       }
     }
   });
-  
 
-  // ─── Start Session (Admin) ─────────────────────────
   socket.on("startSession", ({ mode }) => {
     if (SessionManager.playerQueue.length !== 10 || SessionManager.sessionStarted) return;
 
@@ -92,7 +130,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  // ─── Captain Selection ─────────────────────────────
   socket.on("setCaptains", ({ captain1Id, captain2Id }) => {
     const captains = SessionManager.setCaptains(captain1Id, captain2Id);
 
@@ -101,10 +138,7 @@ io.on("connection", (socket) => {
         io.to(captain.id).emit("youAreCaptain");
       });
 
-      SessionManager.veto.captains = {
-        A: captains[0],
-        B: captains[1],
-      };
+      SessionManager.veto.captains = { A: captains[0], B: captains[1] };
 
       io.emit("sessionStarted", {
         teamA: [captains[0]],
@@ -120,16 +154,16 @@ io.on("connection", (socket) => {
         teamB: SessionManager.draft.teamB,
         currentCaptain: SessionManager.draft.currentCaptain,
       });
+
       io.emit("draftUpdate", {
         teamA: SessionManager.draft.teamA,
         teamB: SessionManager.draft.teamB,
         availablePlayers: SessionManager.draft.availablePlayers,
         currentCaptain: SessionManager.draft.currentCaptain,
-      });      
+      });
     }
   });
 
-  // ─── Draft Picks ──────────────────────────────────
   socket.on("pickPlayer", ({ playerId }) => {
     const result = SessionManager.pickPlayer(socket.id, playerId);
     if (!result) return;
@@ -141,44 +175,38 @@ io.on("connection", (socket) => {
         availablePlayers,
         teamA,
         teamB,
-        currentCaptain
+        currentCaptain,
       });
 
       io.emit("draftUpdate", {
         teamA,
         teamB,
         availablePlayers,
-        currentCaptain
+        currentCaptain,
       });
     } else {
-      // Final pick done — emit final draft state
       io.emit("draftUpdate", {
         teamA,
         teamB,
         availablePlayers: [],
-        currentCaptain: null
+        currentCaptain: null,
       });
 
-      io.emit("draftComplete", {
-        teamA,
-        teamB
-      });
+      io.emit("draftComplete", { teamA, teamB });
     }
   });
 
-
-  // ─── Map Voting ───────────────────────────────────
   socket.on("startMapVoting", ({ mapPool }) => {
     if (!Array.isArray(mapPool) || mapPool.length < 2) {
-      console.warn("⚠️ Invalid map pool received.");
+      console.warn("Invalid map pool received.");
       return;
     }
 
     SessionManager.setMapPool(mapPool);
     const { captains } = SessionManager.veto;
 
-    if (!captains || !captains.A || !captains.B) {
-      console.warn("⚠️ Map voting started before captains set.");
+    if (!captains?.A || !captains?.B) {
+      console.warn("Captains missing.");
       return;
     }
 
@@ -220,39 +248,30 @@ io.on("connection", (socket) => {
     }
   });
 
-
   socket.on("clearSession", () => {
     SessionManager.reset();
-  
-    // Remove all players completely, including test players
     SessionManager.playerQueue = [];
-  
     io.emit("sessionReset");
     io.emit("playerPoolUpdate", []);
   });
-  
 
-  // ─── Reset Session ──────────────────────────
   socket.on("resetSession", () => {
     SessionManager.reset();
     io.emit("playerPoolUpdate", SessionManager.getPlayerList());
     io.emit("sessionReset");
   });
-  
 
-  // ─── Disconnect Cleanup ───────────────────────────
   socket.on("disconnect", () => {
-    console.log(`❌ Disconnected: ${socket.id}`);
-  
+    console.log(`Disconnected: ${socket.id}`);
     if (!SessionManager.sessionStarted) {
       SessionManager.removePlayer(socket.id);
       io.emit("playerPoolUpdate", SessionManager.getPlayerList());
     }
-  });  
+  });
 });
 
-// ─── Start Server ────────────────────────────────────
-
+// ─────── Start Server ───────
 server.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
+
