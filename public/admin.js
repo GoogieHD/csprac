@@ -6,6 +6,7 @@ const nameInput = document.getElementById("adminNameInput");
 const joinBtn = document.getElementById("adminJoinBtn");
 const startBtn = document.getElementById("adminStartBtn");
 const displayArea = document.getElementById("adminDisplayArea");
+const resetBtn = document.getElementById("adminResetBtn");
 
 let playerName = "";
 let currentPlayerPool = [];
@@ -28,6 +29,17 @@ joinBtn.onclick = () => {
 startBtn.onclick = () => {
   const mode = modeSelect.value;
   socket.emit("startSession", { mode });
+};
+
+// Reset session
+resetBtn.onclick = () => {
+  if (confirm("Are you sure you want to reset the session?")) {
+    socket.emit("resetSession");
+    nameInput.disabled = false;
+    joinBtn.disabled = false;
+    joinBtn.textContent = "Join";
+    startBtn.disabled = true;
+  }
 };
 
 // Player pool updated

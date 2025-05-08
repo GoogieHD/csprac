@@ -15,7 +15,7 @@ app.use(express.static("public"));
 
 const DEFAULT_FAKE_PLAYER_NAMES = [
   "ScratchFiveK", "Googie", "Slurp", "AncientOldie", "Joakim",
-  "Rattle", "Shenzi", "audeaeaeamus", "Brick", "Jorgen"
+  "Rattle", "Shenzi", "Brick", 
 ];
 
 const DEFAULT_FAKE_PLAYERS = DEFAULT_FAKE_PLAYER_NAMES.length;
@@ -34,8 +34,39 @@ io.on("connection", (socket) => {
     const player = SessionManager.addPlayer(socket.id, name);
     if (player) {
       io.emit("playerPoolUpdate", SessionManager.getPlayerList());
+  
+      // Re-send draft state if already ongoing
+      if (SessionManager.draft) {
+        socket.emit("draftUpdate", {
+          teamA: SessionManager.draft.teamA,
+          teamB: SessionManager.draft.teamB,
+          availablePlayers: SessionManager.draft.availablePlayers,
+          currentCaptain: SessionManager.draft.currentCaptain,
+        });
+  
+        // Also let the picking captain resume
+        if (SessionManager.draft.currentCaptain === socket.id) {
+          socket.emit("yourTurnToPick", {
+            teamA: SessionManager.draft.teamA,
+            teamB: SessionManager.draft.teamB,
+            availablePlayers: SessionManager.draft.availablePlayers,
+            currentCaptain: SessionManager.draft.currentCaptain,
+          });
+        }
+      }
+  
+      // Re-send map if already chosen
+      const finalMap = SessionManager.getFinalMap?.();
+      if (finalMap) {
+        socket.emit("mapChosen", {
+          finalMap,
+          teamA: SessionManager.draft?.teamA || [],
+          teamB: SessionManager.draft?.teamB || [],
+        });
+      }
     }
   });
+  
 
   // ─── Start Session (Admin) ─────────────────────────
   socket.on("startSession", ({ mode }) => {
@@ -85,7 +116,16 @@ io.on("connection", (socket) => {
 
       io.to(SessionManager.draft.currentCaptain).emit("yourTurnToPick", {
         availablePlayers: SessionManager.draft.availablePlayers,
+        teamA: SessionManager.draft.teamA,
+        teamB: SessionManager.draft.teamB,
+        currentCaptain: SessionManager.draft.currentCaptain,
       });
+      io.emit("draftUpdate", {
+        teamA: SessionManager.draft.teamA,
+        teamB: SessionManager.draft.teamB,
+        availablePlayers: SessionManager.draft.availablePlayers,
+        currentCaptain: SessionManager.draft.currentCaptain,
+      });      
     }
   });
 
@@ -94,23 +134,38 @@ io.on("connection", (socket) => {
     const result = SessionManager.pickPlayer(socket.id, playerId);
     if (!result) return;
 
-    io.emit("draftUpdate", {
-      teamA: result.teamA,
-      teamB: result.teamB,
-      availablePlayers: result.availablePlayers,
-    });
+    const { teamA, teamB, availablePlayers, currentCaptain } = result;
 
-    if (result.availablePlayers.length > 0) {
-      io.to(result.currentCaptain).emit("yourTurnToPick", {
-        availablePlayers: result.availablePlayers,
+    if (availablePlayers.length > 0) {
+      io.to(currentCaptain).emit("yourTurnToPick", {
+        availablePlayers,
+        teamA,
+        teamB,
+        currentCaptain
+      });
+
+      io.emit("draftUpdate", {
+        teamA,
+        teamB,
+        availablePlayers,
+        currentCaptain
       });
     } else {
+      // Final pick done — emit final draft state
+      io.emit("draftUpdate", {
+        teamA,
+        teamB,
+        availablePlayers: [],
+        currentCaptain: null
+      });
+
       io.emit("draftComplete", {
-        teamA: result.teamA,
-        teamB: result.teamB,
+        teamA,
+        teamB
       });
     }
   });
+
 
   // ─── Map Voting ───────────────────────────────────
   socket.on("startMapVoting", ({ mapPool }) => {
@@ -165,15 +220,35 @@ io.on("connection", (socket) => {
     }
   });
 
+
+  socket.on("clearSession", () => {
+    SessionManager.reset();
+  
+    // Remove all players completely, including test players
+    SessionManager.playerQueue = [];
+  
+    io.emit("sessionReset");
+    io.emit("playerPoolUpdate", []);
+  });
+  
+
+  // ─── Reset Session ──────────────────────────
+  socket.on("resetSession", () => {
+    SessionManager.reset();
+    io.emit("playerPoolUpdate", SessionManager.getPlayerList());
+    io.emit("sessionReset");
+  });
+  
+
   // ─── Disconnect Cleanup ───────────────────────────
   socket.on("disconnect", () => {
-    SessionManager.removePlayer(socket.id);
     console.log(`❌ Disconnected: ${socket.id}`);
-
+  
     if (!SessionManager.sessionStarted) {
+      SessionManager.removePlayer(socket.id);
       io.emit("playerPoolUpdate", SessionManager.getPlayerList());
     }
-  });
+  });  
 });
 
 // ─── Start Server ────────────────────────────────────

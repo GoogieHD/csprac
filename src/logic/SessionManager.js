@@ -29,11 +29,20 @@ class SessionManager {
   // ─── Player Management ───────────────────────────────
 
   addPlayer(id, name) {
+    const existing = this.playerQueue.find(p => p.name === name);
+    if (existing) {
+      existing.id = id;
+      return existing;
+    }
+  
     if (this.sessionStarted || this.playerQueue.length >= 10) return null;
+  
     const player = new Player(id, name);
     this.playerQueue.push(player);
     return player;
   }
+  
+  
 
   removePlayer(id) {
     this.playerQueue = this.playerQueue.filter((p) => p.id !== id);
