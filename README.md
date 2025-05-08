@@ -5,7 +5,7 @@ This is a real-time web application for managing 10-man CS2 matches using a capt
 ## Getting Started
 
 1. Clone the repository:
-   - git clone [https://github.com/GoogieHD/csprac.git]
+   - git clone https://github.com/GoogieHD/csprac.git
    - cd cs2-prac-queue
 
 2. Install dependencies:
