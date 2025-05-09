@@ -13,4 +13,7 @@ This is a real-time web application for managing 10-man CS2 matches using a capt
 
 3. Start the server:
 
+4. For Admin Access:
+   - http://localhost:3000/admin-login.html
+
 The application will run at http://localhost:3000
