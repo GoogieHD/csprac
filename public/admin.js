@@ -8,6 +8,24 @@ const startBtn = document.getElementById("adminStartBtn");
 const displayArea = document.getElementById("adminDisplayArea");
 const resetBtn = document.getElementById("adminResetBtn");
 
+// Password validation logic
+const passwordScreen = document.getElementById("passwordScreen");
+const adminContent = document.getElementById("adminContent");
+const passwordSubmit = document.getElementById("passwordSubmit");
+const adminPassword = document.getElementById("adminPassword");
+
+const ADMIN_PASSWORD = "nigger"; // Replace with your desired password
+
+passwordSubmit.onclick = () => {
+  const enteredPassword = adminPassword.value.trim();
+  if (enteredPassword === ADMIN_PASSWORD) {
+    passwordScreen.classList.add("hidden");
+    adminContent.classList.remove("hidden");
+  } else {
+    alert("Incorrect password. Please try again.");
+  }
+};
+
 let playerName = "";
 let currentPlayerPool = [];
 

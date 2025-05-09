@@ -9,43 +9,51 @@
 </head>
 
 <body class="bg-gray-900 text-white min-h-screen flex items-center justify-center px-4 py-8">
-  <main class="w-full max-w-2xl bg-gray-800 rounded-2xl shadow-2xl p-6 space-y-6">
-    <header class="text-center">
-      <h1 class="text-3xl font-extrabold text-red-400 tracking-tight">
-        Admin Control Panel
-      </h1>
-      <p class="text-sm text-gray-400 mt-1">Control team settings and map veto</p>
-    </header>
+  <div id="passwordScreen" class="w-full max-w-md bg-gray-800 rounded-2xl shadow-2xl p-6 space-y-6">
+    <h1 class="text-2xl font-extrabold text-green-400 text-center">Admin Login</h1>
+    <label for="adminPassword" class="block text-left text-sm font-medium text-gray-200">Enter Password</label>
+    <input id="adminPassword" type="password" placeholder="Password" class="w-full px-4 py-2 rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400" autocomplete="off" />
+    <button id="passwordSubmit" class="w-full bg-green-600 hover:bg-green-700 font-bold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-green-400">Submit</button>
+  </div>
 
-    <section class="space-y-2">
-      <label for="adminNameInput" class="block text-left text-sm font-medium text-gray-200">
-        Join as Player (optional)
-      </label>
-      <input id="adminNameInput" type="text" placeholder="Enter your name"
-        class="w-full px-4 py-2 rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400" />
-      <button id="adminJoinBtn"
-        class="w-full bg-red-600 hover:bg-red-700 font-bold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-red-400">
-        Join as Player
-      </button>
-    </section>
+  <div id="adminContent" class="hidden">
+    <main class="w-full max-w-2xl bg-gray-800 rounded-2xl shadow-2xl p-6 space-y-6">
+      <header class="text-center">
+        <h1 class="text-3xl font-extrabold text-red-400 tracking-tight">
+          Admin Control Panel
+        </h1>
+        <p class="text-sm text-gray-400 mt-1">Control team settings and map veto</p>
+      </header>
 
-    <section class="space-y-4">
-      <label for="teamModeSelect" class="block text-left text-sm font-medium text-gray-200">
-        Team Selection Mode
-      </label>
-      <select id="teamModeSelect"
-        class="w-full px-4 py-2 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-red-400">
-        <option value="random">Random</option>
-        <option value="captains">Captains</option>
-      </select>
+      <section class="space-y-2">
+        <label for="adminNameInput" class="block text-left text-sm font-medium text-gray-200">
+          Join as Player (optional)
+        </label>
+        <input id="adminNameInput" type="text" placeholder="Enter your name"
+          class="w-full px-4 py-2 rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400" />
+        <button id="adminJoinBtn"
+          class="w-full bg-red-600 hover:bg-red-700 font-bold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-red-400">
+          Join as Player
+        </button>
+      </section>
 
-      <label for="mapPoolInput" class="block text-left text-sm font-medium text-gray-200 mt-4">
-        Map Pool (comma-separated)
-      </label>
-      <input id="mapPoolInput"
-        class="w-full px-4 py-2 rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400"
-        value="Mirage, Inferno, Nuke, Overpass, Ancient, Dust 2, Cache, Cobblestone, Season, Anubis" />
-    </section>
+      <section class="space-y-4">
+        <label for="teamModeSelect" class="block text-left text-sm font-medium text-gray-200">
+          Team Selection Mode
+        </label>
+        <select id="teamModeSelect"
+          class="w-full px-4 py-2 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-red-400">
+          <option value="random">Random</option>
+          <option value="captains">Captains</option>
+        </select>
+
+        <label for="mapPoolInput" class="block text-left text-sm font-medium text-gray-200 mt-4">
+          Map Pool (comma-separated)
+        </label>
+        <input id="mapPoolInput"
+          class="w-full px-4 py-2 rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400"
+          value="Mirage, Inferno, Nuke, Overpass, Ancient, Dust 2, Cache, Cobblestone, Season, Anubis" />
+      </section>
 
     <button id="adminStartBtn"
       class="bg-green-600 hover:bg-green-700 w-full font-bold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-400">
@@ -56,14 +64,15 @@
       Restart Session
     </button>
 
-    <section id="adminDisplayArea" class="w-full">
-      <!-- Dynamic session data goes here -->
-    </section>
+      <section id="adminDisplayArea" class="w-full">
+        <!-- Dynamic session data goes here -->
+      </section>
 
-    <footer class="text-sm text-gray-400 pt-4 text-center">
-      <p>This panel is for authorized admins only.</p>
-    </footer>
-  </main>
+      <footer class="text-sm text-gray-400 pt-4 text-center">
+        <p>This panel is for authorized admins only.</p>
+      </footer>
+    </main>
+  </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="admin.js"></script>
