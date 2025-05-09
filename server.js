@@ -8,6 +8,7 @@ const { Server } = require("socket.io");
 const path = require("path");
 
 const SessionManager = require("./src/logic/SessionManager");
+const config = require("./config.json");
 
 const app = express();
 const server = http.createServer(app);
@@ -19,18 +20,16 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
   session({
-    secret: process.env.SESSION_SECRET,
+    secret: config.sessionSecret,
     resave: false,
     saveUninitialized: true,
   })
 );
 
-
 // ─────── Admin Credentials ───────
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const ADMIN_USERNAME = config.adminUsername;
+const ADMIN_PASSWORD = config.adminPassword;
 const PORT = process.env.PORT || 3000;
-
 
 // ─────── Auth Middleware ───────
 function isAuthenticated(req, res, next) {
@@ -40,9 +39,15 @@ function isAuthenticated(req, res, next) {
   return res.redirect("/admin-login.html");
 }
 
+// Ensure admin.html is not directly accessible
+app.use("/public/admin.html", (req, res) => {
+  res.status(403).send("Forbidden");
+});
+
 // ─────── Routes ───────
+// Serve admin.html securely from the views folder
 app.get("/admin", isAuthenticated, (req, res) => {
-  res.sendFile(path.join(__dirname, "/public/admin.html"));
+  res.sendFile(path.join(__dirname, "/views/admin.html"));
 });
 
 app.post("/admin/login", (req, res) => {
