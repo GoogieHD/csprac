@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CS2 Prac</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes pulse {
+
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      50% {
+        transform: scale(1.05);
+        opacity: 0.8;
+      }
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    .animate-pulse {
+      animation: pulse 2s infinite;
+    }
+
+    .animate-fade-in {
+      animation: fadeIn 0.5s ease-in-out;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center px-4 py-8 relative overflow-hidden">
+  <canvas id="backgroundCanvas" class="absolute top-0 left-0 w-full h-full"></canvas>
+  <main class="w-full max-w-xl bg-gray-800 rounded-2xl shadow-2xl p-6 space-y-6 relative z-10">
+    <header class="text-center animate-pulse">
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center px-4 py-8 relative overflow-hidden">
+  <canvas id="backgroundCanvas" class="absolute top-0 left-0 w-full h-full"></canvas>
+  <main class="w-full max-w-xl bg-gray-800 rounded-2xl shadow-2xl p-6 space-y-6 relative z-10">
+    <header class="text-center animate-pulse">
+      <h1 class="text-3xl font-extrabold text-green-400 tracking-tight">
+        CS2 Practice Session
+      </h1>
+      <p class="text-sm text-gray-400 mt-1">Tuesdays & Sundays only</p>
+    </header>
+
+    <section class="space-y-4">
+      <label for="nameInput" class="block text-left text-sm font-medium text-gray-200">
+        Your Name
+      </label>
+      <input id="nameInput" type="text" placeholder="Enter your name"
+        class="w-full px-4 py-2 rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400 animate-fade-in"
+        class="w-full px-4 py-2 rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400 animate-fade-in"
+        autocomplete="off" />
+      <button id="attendBtn"
+        class="w-full bg-green-600 hover:bg-green-700 font-bold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-green-400">
+        Attend
+      </button>
+    </section>
+
+    <section id="playerList" class="text-left">
+      <h2 class="text-xl font-semibold text-white mb-2">Players in Queue</h2>
+      <ul id="playerUl" class="list-disc list-inside space-y-1 text-gray-300"></ul>
+    </section>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="main.js"></script>
+  <script src="background.js"></script>
+
+  <script src="background.js"></script>
+
+</body>
+
+</html>
