@@ -1,4 +1,5 @@
 const Player = require("../models/CustomPlayer");
+const UserDTO = require("../models/UserDTO");
 
 class SessionManager {
   constructor() {
@@ -11,6 +12,9 @@ class SessionManager {
     };
     this.draft = null;
     this.mapPool = [];
+    if (process.env.NODE_ENV === "development") {
+      this.addFakePlayers(8);
+    }
   }
 
   reset() {
@@ -24,6 +28,9 @@ class SessionManager {
       captains: null,
     };
     this.mapPool = [];
+    if (process.env.NODE_ENV === "development") {
+      this.addFakePlayers(8);
+    }
   }
 
   // ─── Player Management ───────────────────────────────
@@ -34,15 +41,15 @@ class SessionManager {
       existing.id = id;
       return existing;
     }
-  
+
     if (this.sessionStarted || this.playerQueue.length >= 10) return null;
-  
+
     const player = new Player(id, name);
     this.playerQueue.push(player);
     return player;
   }
-  
-  
+
+
 
   removePlayer(id) {
     this.playerQueue = this.playerQueue.filter((p) => p.id !== id);
@@ -55,6 +62,24 @@ class SessionManager {
       team: p.team,
       isCaptain: p.isCaptain,
     }));
+  }
+
+  addFakePlayers(count) {
+    const fakePlayers = [];
+    for (let i = 0; i < count; i++) {
+      const fakeDTO = new UserDTO({
+        _id: `fake_${i}`,
+        username: `FakePlayer${i}`,
+        role: "player",
+      })
+      const fakePlayer = this.UserDTOtoPlayer(fakeDTO);
+      fakePlayers.push(fakePlayer);
+      this.playerQueue.push(fakePlayer);
+    }
+  }
+
+  UserDTOtoPlayer(userDTO) {
+    return new Player(userDTO._id, userDTO.username);
   }
 
   // ─── Team Assignment ────────────────────────────────

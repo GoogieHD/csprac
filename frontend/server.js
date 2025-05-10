@@ -65,14 +65,6 @@ app.get("/admin/logout", (req, res) => {
   });
 });
 
-// ─────── Fake Players ───────
-if (process.env.NODE_ENV === "development") {
-  const DEFAULT_FAKE_PLAYER_NAMES = [ "Dev1", "Dev2", "Dev3", "Dev4", "Dev5", "Dev6", "Dev7", "Dev8" ];
-  DEFAULT_FAKE_PLAYER_NAMES.forEach((name, i) => {
-    SessionManager.addPlayer(`fakePlayer${i}`, name);
-  });
-}
-
 // ─────── Socket.io ───────
 io.on("connection", (socket) => {
   console.log(`🔌 Connected: ${socket.id}`);
