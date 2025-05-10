@@ -10,24 +10,12 @@ window.addEventListener("DOMContentLoaded", () => {
   let playerName = "";
   let currentCaptainId = null;
 
-  // Auto-rejoin
-  socket.on("connect", () => {
-    const saved = localStorage.getItem("playerName");
-    if (saved) {
-      playerName = saved;
-      nameInput.value = saved;
-      socket.emit("attend", saved);
-    }
-  });
-
-
-  // Join queue
+  // Join queue manually
   if (attendBtn) {
     attendBtn.onclick = () => {
       const name = nameInput.value.trim();
       if (name) {
         playerName = name;
-        localStorage.setItem("playerName", name);
         socket.emit("attend", name);
       }
     };
@@ -85,9 +73,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     playerList.innerHTML = `
       <h2 class="text-xl font-semibold mb-4 text-center">
-        ${captainId === socket.id
-          ? "Your turn to pick a teammate"
-          : "Waiting for captain to pick..."}
+        ${isPicking ? "Your turn to pick a teammate" : "Waiting for captain to pick..."}
       </h2>
       <ul class="space-y-3">
         ${allPlayers.map(p => {
@@ -192,14 +178,14 @@ window.addEventListener("DOMContentLoaded", () => {
 
     playerList.innerHTML = `
       <h2 class="text-2xl font-bold text-green-400 text-center mb-4">
-      Final Map: ${finalMap.toUpperCase()}
+        Final Map: ${finalMap.toUpperCase()}
       </h2>
       ${renderTeams(teamA, teamB)}
       <p class="text-center text-gray-300 mt-6">
-      Prepare to load into <strong>${finalMap.toUpperCase()}</strong>.
+        Prepare to load into <strong>${finalMap.toUpperCase()}</strong>.
       </p>
       <p class="text-center text-gray-300 mt-6">
-      IP: <strong><a href="steam://connect/cs2comp.datho.st:25876/tawnet" class="text-blue-400 underline">connect cs2comp.datho.st:25876; password tawnet</a></strong>.
+        IP: <strong><a href="steam://connect/cs2comp.datho.st:25876/tawnet" class="text-blue-400 underline">connect cs2comp.datho.st:25876; password tawnet</a></strong>.
       </p>
     `;
   });
@@ -226,7 +212,6 @@ window.addEventListener("DOMContentLoaded", () => {
     attendBtn.disabled = false;
     attendBtn.textContent = "Join Queue";
     nameInput.value = "";
-    localStorage.removeItem("playerName");
   });
 
   socket.on("warning", (message) => {

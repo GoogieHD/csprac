@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-900 text-white flex items-center justify-center h-screen">
+  <form id="loginForm" class="bg-gray-800 p-6 rounded shadow-lg space-y-4 max-w-sm w-full">
+    <h2 class="text-2xl font-bold text-center text-red-400">Login</h2>
+    <input id="username" type="text" placeholder="Username" required class="w-full px-4 py-2 rounded text-black" />
+    <input id="password" type="password" placeholder="Password" required class="w-full px-4 py-2 rounded text-black" />
+    <button type="submit" class="bg-red-600 w-full py-2 rounded hover:bg-red-700">Login</button>
+    <a href="/register.html" class="block text-center bg-blue-600 hover:bg-blue-700 w-full py-2 rounded mt-2 transition duration-200">
+      Register
+    </a>
+    <p id="error" class="text-red-500 text-sm text-center mt-2"></p>
+  </form>
+
+  <script>
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      const errorElem = document.getElementById("error");
+
+      try {
+        const response = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ username, password })
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          errorElem.textContent = data.error || "Login failed.";
+          return;
+        }
+
+        const result = await response.json();
+        const role = result.role;
+
+        if (role === 3) {
+          window.location.href = "/admin.html";
+        } else {
+          window.location.href = "/index.html"; 
+        }
+
+      } catch (err) {
+        console.error(err);
+        errorElem.textContent = "Something went wrong.";
+      }
+    });
+  </script>
+</body>
+</html>
