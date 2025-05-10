@@ -65,7 +65,7 @@ class SessionManager {
     const fakePlayers = [];
     for (let i = 0; i < count; i++) {
       const fakeDTO = new UserDTO({
-        _id: `fake_${i}`,
+        id: `fake_${i}`,
         username: `FakePlayer${i}`,
         role: "player",
       })
@@ -76,7 +76,7 @@ class SessionManager {
   }
 
   UserDTOtoPlayer(userDTO) {
-    return new Player(userDTO._id, userDTO.username);
+    return new Player(userDTO.id, userDTO.username);
   }
 
   // ─── Team Assignment ────────────────────────────────
@@ -131,7 +131,10 @@ class SessionManager {
   pickPlayer(captainId, playerId) {
     if (!this.draft) return null;
 
-    const player = this.draft.availablePlayers.find((p) => p.id === playerId);
+    const player = this.draft.availablePlayers.find((p) => p.id == playerId);
+    console.log("Player to pick:", player);
+    console.log("Player ID:", playerId);
+    console.log("Available Players:", this.draft.availablePlayers);
     if (!player || captainId !== this.draft.currentCaptain) return null;
 
     const currentTeam = this.draft.teamA.find((p) => p.id === captainId)
@@ -144,10 +147,9 @@ class SessionManager {
       (p) => p.id !== playerId
     );
 
-    this.draft.currentCaptain =
-      captainId === this.draft.teamA[0].id
-        ? this.draft.teamB[0].id
-        : this.draft.teamA[0].id;
+    // Ensure currentCaptain alternates between the two captains
+    const { A, B } = this.veto.captains;
+    this.draft.currentCaptain = captainId === A.id ? B.id : A.id;
 
     return {
       teamA: this.draft.teamA,
