@@ -7,19 +7,14 @@ window.addEventListener("DOMContentLoaded", () => {
   const clearBtn = document.getElementById("adminClearBtn");
 
   let allPlayers = [];
-  let playerName = "";
+  let playerName = sessionStorage.getItem("playerName") || ""; // Retrieve from sessionStorage
   let currentCaptainId = null;
 
-  // Auto-rejoin
-  socket.on("connect", () => {
-    const saved = localStorage.getItem("playerName");
-    if (saved) {
-      playerName = saved;
-      nameInput.value = saved;
-      socket.emit("attend", saved);
-    }
-  });
-
+  // Auto-rejoin if playerName exists in sessionStorage
+  if (playerName) {
+    nameInput.value = playerName;
+    socket.emit("attend", playerName);
+  }
 
   // Join queue
   if (attendBtn) {
@@ -27,7 +22,7 @@ window.addEventListener("DOMContentLoaded", () => {
       const name = nameInput.value.trim();
       if (name) {
         playerName = name;
-        localStorage.setItem("playerName", name);
+        sessionStorage.setItem("playerName", name); // Save to sessionStorage
         socket.emit("attend", name);
       }
     };
@@ -37,6 +32,7 @@ window.addEventListener("DOMContentLoaded", () => {
   if (clearBtn) {
     clearBtn.onclick = () => {
       if (confirm("Clear everything? This will remove all players and reset the system.")) {
+        sessionStorage.removeItem("playerName"); // Clear sessionStorage
         socket.emit("clearSession");
       }
     };
@@ -213,6 +209,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   socket.on("sessionReset", () => {
+    sessionStorage.removeItem("playerName"); // Clear sessionStorage on reset
     Toastify({
       text: "Session has been cleared by admin.",
       duration: 4000,
@@ -226,7 +223,6 @@ window.addEventListener("DOMContentLoaded", () => {
     attendBtn.disabled = false;
     attendBtn.textContent = "Join Queue";
     nameInput.value = "";
-    localStorage.removeItem("playerName");
   });
 
   socket.on("warning", (message) => {

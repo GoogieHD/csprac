@@ -10,8 +10,15 @@ const resetBtn = document.getElementById("adminResetBtn");
 
 const adminContent = document.getElementById("adminContent");
 
-let playerName = "";
+let playerName = sessionStorage.getItem("adminPlayerName") || ""; // Retrieve from sessionStorage
 let currentPlayerPool = [];
+
+if (playerName) {
+  nameInput.value = playerName;
+  nameInput.disabled = true;
+  joinBtn.disabled = true;
+  joinBtn.textContent = "Joined";
+}
 
 startBtn.disabled = true;
 
@@ -20,6 +27,7 @@ joinBtn.onclick = () => {
   const name = nameInput.value.trim();
   if (name) {
     playerName = name;
+    sessionStorage.setItem("adminPlayerName", name); // Save to sessionStorage
     socket.emit("attend", name);
     nameInput.disabled = true;
     joinBtn.disabled = true;
@@ -36,6 +44,7 @@ startBtn.onclick = () => {
 // Reset session
 resetBtn.onclick = () => {
   if (confirm("Are you sure you want to reset the session?")) {
+    sessionStorage.removeItem("adminPlayerName"); // Clear sessionStorage
     socket.emit("resetSession");
     nameInput.disabled = false;
     joinBtn.disabled = false;

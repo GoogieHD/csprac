@@ -12,9 +12,6 @@ class SessionManager {
     };
     this.draft = null;
     this.mapPool = [];
-    if (process.env.NODE_ENV === "development") {
-      this.addFakePlayers(8);
-    }
   }
 
   reset() {

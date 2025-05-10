@@ -1,7 +1,6 @@
 # CS2 Practice Queue – Project To-Do
 
 ## Completed
-- Auto-rejoin using localStorage
 - Draft UI synced for all clients
 - Session reset
 - Final map + server IP display
