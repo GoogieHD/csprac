@@ -5,6 +5,7 @@
 - Draft UI synced for all clients
 - Session reset
 - Final map + server IP display
+- **Database integration**
 
 ---
 
