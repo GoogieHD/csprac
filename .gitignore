@@ -3,3 +3,11 @@
 /backend/node_modules
 !.migrate-mongo-config.js
 !migrations/
+
+node_modules/
+**/node_modules/
+/frontend/.env
+.env
+.gitignore
+frontend/package-lock.json
+frontend/package.json

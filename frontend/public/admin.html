@@ -76,6 +76,16 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="admin.js"></script>
+  <script>
+    fetch("/api/session-info", { credentials: "include" })
+      .then(res => {
+        if (!res.ok) throw new Error("Not authenticated");
+        return res.json();
+      })
+      .catch(() => {
+        window.location.href = "/login.html"; // Redirect to login if not authenticated
+      });
+  </script>
 </body>
 
 </html>

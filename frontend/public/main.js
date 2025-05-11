@@ -1,38 +1,51 @@
-window.addEventListener("DOMContentLoaded", () => {
-  const socket = io();
+import { getPremierRankLabel } from "./utils/rankTier.js";
+const socket = io();
 
+window.addEventListener("DOMContentLoaded", () => {
   const attendBtn = document.getElementById("attendBtn");
   const nameInput = document.getElementById("nameInput");
   const playerList = document.getElementById("playerList");
   const clearBtn = document.getElementById("adminClearBtn");
 
   let allPlayers = [];
-  let playerName = sessionStorage.getItem("playerName") || ""; // Retrieve from sessionStorage
+  let playerName = "";
   let currentCaptainId = null;
 
-  // Auto-rejoin if playerName exists in sessionStorage
-  if (playerName) {
-    nameInput.value = playerName;
-    socket.emit("attend", playerName);
-  }
-
-  // Join queue
-  if (attendBtn) {
-    attendBtn.onclick = () => {
-      const name = nameInput.value.trim();
-      if (name) {
-        playerName = name;
-        sessionStorage.setItem("playerName", name); // Save to sessionStorage
-        socket.emit("attend", name);
+  // Prefill player name from session info
+  fetch("/api/session-info", { credentials: "include" })
+    .then((res) => {
+      if (!res.ok) throw new Error("Not authenticated");
+      return res.json();
+    })
+    .then((data) => {
+      if (data.username) {
+        nameInput.value = data.username;
+        playerName = data.username;
       }
-    };
-  }
+
+      if (attendBtn) {
+        attendBtn.onclick = () => {
+          const name = nameInput.value.trim();
+          if (name) {
+            playerName = name;
+            socket.emit("attend", name);
+            console.log("[Client] Attending as:", name);
+          }
+        };
+      }
+    })
+    .catch(() => {
+      window.location.href = "/login.html";
+    });
 
   // Clear session
   if (clearBtn) {
     clearBtn.onclick = () => {
-      if (confirm("Clear everything? This will remove all players and reset the system.")) {
-        sessionStorage.removeItem("playerName"); // Clear sessionStorage
+      if (
+        confirm(
+          "Clear everything? This will remove all players and reset the system."
+        )
+      ) {
         socket.emit("clearSession");
       }
     };
@@ -44,11 +57,21 @@ window.addEventListener("DOMContentLoaded", () => {
 
     playerList.innerHTML = `
       <h2 class="text-xl font-semibold mb-2 text-left">Players in Queue:</h2>
-      <ul class="list-disc list-inside space-y-1 text-gray-300 text-left">
-        ${players.map((p) => {
-          if (p.name === playerName) foundSelf = true;
-          return `<li>${p.name}</li>`;
-        }).join("")}
+      <ul class="list-inside space-y-1 text-gray-300 text-left">
+        ${players
+          .map((p) => {
+            const rankTier = getPremierRankLabel(p.rank);
+            const badge = p.rank
+              ? `
+                <span class="ml-2 px-2 py-0.5 rounded-full font-bold text-xs border ${rankTier.color}">
+                  ${rankTier.tier}
+                </span>`
+              : "";
+
+            if (p.name === playerName) foundSelf = true;
+            return `<li>${p.name}${badge}</li>`;
+          })
+          .join("")}
       </ul>
     `;
 
@@ -60,60 +83,63 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   socket.on("youAreCaptain", () => {
-
-
-    //Toastify dont work
-    // Toastify({
-    //   text: "You are a Captain! Get ready to pick your team.",
-    //   duration: 4000,
-    //   close: true,
-    //   gravity: "top",
-    //   position: "center",
-    //   backgroundColor: "#10b981",
-    //   stopOnFocus: true,
-    // }).showToast();
+    Toastify({
+      text: "You are a Captain! Get ready to pick your team.",
+      duration: 4000,
+      close: true,
+      gravity: "top",
+      position: "center",
+      backgroundColor: "#10b981",
+      stopOnFocus: true,
+    }).showToast();
   });
 
   function renderDraftUI(availablePlayers, teamA, teamB, captainId) {
-    const availableIds = new Set(availablePlayers.map(p => p.id));
+    const availableIds = new Set(availablePlayers.map((p) => p.id));
     const teamMap = new Map();
     const isPicking = socket.id === captainId;
 
-    teamA.forEach(p => teamMap.set(p.id, "Alpha"));
-    teamB.forEach(p => teamMap.set(p.id, "Beta"));
+    teamA.forEach((p) => teamMap.set(p.id, "Alpha"));
+    teamB.forEach((p) => teamMap.set(p.id, "Beta"));
 
     playerList.innerHTML = `
       <h2 class="text-xl font-semibold mb-4 text-center">
-        ${captainId === socket.id
-          ? "Your turn to pick a teammate"
-          : "Waiting for captain to pick..."}
+        ${
+          isPicking
+            ? "Your turn to pick a teammate"
+            : "Waiting for captain to pick..."
+        }
       </h2>
       <ul class="space-y-3">
-        ${allPlayers.map(p => {
-          const isAvailable = availableIds.has(p.id);
-          const team = teamMap.get(p.id);
-          const teamLabel = team
-            ? `<span class="ml-2 text-sm font-semibold text-${team === 'Alpha' ? 'green' : 'blue'}-400">Team ${team}</span>`
-            : '';
+        ${allPlayers
+          .map((p) => {
+            const isAvailable = availableIds.has(p.id);
+            const team = teamMap.get(p.id);
+            const teamLabel = team
+              ? `<span class="ml-2 text-sm font-semibold text-${
+                  team === "Alpha" ? "green" : "blue"
+                }-400">Team ${team}</span>`
+              : "";
 
-          return `
+            return `
             <li>
               <button 
                 data-id="${p.id}" 
                 class="w-full px-4 py-2 rounded text-black font-medium transition ${
                   isAvailable
                     ? isPicking
-                      ? 'bg-yellow-500 hover:bg-yellow-600 cursor-pointer'
-                      : 'bg-yellow-400 opacity-60 cursor-not-allowed'
-                    : 'bg-gray-600 opacity-50 cursor-not-allowed'
+                      ? "bg-yellow-500 hover:bg-yellow-600 cursor-pointer"
+                      : "bg-yellow-400 opacity-60 cursor-not-allowed"
+                    : "bg-gray-600 opacity-50 cursor-not-allowed"
                 }"
-                ${isAvailable && isPicking ? '' : 'disabled'}
+                ${isAvailable && isPicking ? "" : "disabled"}
               >
                 ${p.name} ${teamLabel}
               </button>
             </li>
           `;
-        }).join('')}
+          })
+          .join("")}
       </ul>
     `;
 
@@ -128,26 +154,34 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  socket.on("yourTurnToPick", ({ availablePlayers, teamA = [], teamB = [], currentCaptain }) => {
-    currentCaptainId = currentCaptain;
-    renderDraftUI(availablePlayers, teamA, teamB, currentCaptainId);
-  });
+  socket.on(
+    "yourTurnToPick",
+    ({ availablePlayers, teamA = [], teamB = [], currentCaptain }) => {
+      currentCaptainId = currentCaptain;
+      renderDraftUI(availablePlayers, teamA, teamB, currentCaptainId);
+    }
+  );
 
-  socket.on("draftUpdate", ({ teamA, teamB, availablePlayers, currentCaptain }) => {
-    currentCaptainId = currentCaptain;
-    renderDraftUI(availablePlayers, teamA, teamB, currentCaptainId);
-  });
+  socket.on(
+    "draftUpdate",
+    ({ teamA, teamB, availablePlayers, currentCaptain }) => {
+      currentCaptainId = currentCaptain;
+      renderDraftUI(availablePlayers, teamA, teamB, currentCaptainId);
+    }
+  );
 
   socket.on("draftComplete", ({ teamA, teamB }) => {
-    // Toastify({
-    //   text: "Draft is complete!",
-    //   duration: 3000,
-    //   gravity: "top",
-    //   position: "center",
-    //   backgroundColor: "#4ade80",
-    // }).showToast();
+    Toastify({
+      text: "Draft is complete!",
+      duration: 3000,
+      gravity: "top",
+      position: "center",
+      backgroundColor: "#4ade80",
+    }).showToast();
 
-    playerList.innerHTML = renderTeams(teamA, teamB) + `
+    playerList.innerHTML =
+      renderTeams(teamA, teamB) +
+      `
       <p class="text-green-300 text-center font-bold mt-4">
         Draft Complete!
       </p>
@@ -159,14 +193,22 @@ window.addEventListener("DOMContentLoaded", () => {
 
     playerList.innerHTML = `
       <h2 class="text-xl font-semibold mb-4">Map Voting</h2>
-      <p class="mb-2">${isCaptain ? "Your turn to ban a map" : "Waiting for other captain..."}</p>
+      <p class="mb-2">${
+        isCaptain ? "Your turn to ban a map" : "Waiting for other captain..."
+      }</p>
       <ul class="grid grid-cols-2 gap-4">
-        ${remainingMaps.map(map => `
+        ${remainingMaps
+          .map(
+            (map) => `
           <li>
-            <button data-map="${map}" class="w-full px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white ${!isCaptain ? "opacity-50 cursor-not-allowed" : ""}">
+            <button data-map="${map}" class="w-full px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white ${
+              !isCaptain ? "opacity-50 cursor-not-allowed" : ""
+            }">
               ${map}
             </button>
-          </li>`).join("")}
+          </li>`
+          )
+          .join("")}
       </ul>
     `;
 
@@ -181,24 +223,24 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   socket.on("mapChosen", ({ finalMap, teamA, teamB }) => {
-    // Toastify({
-    //   text: `Map chosen: ${finalMap.toUpperCase()}`,
-    //   duration: 4000,
-    //   gravity: "top",
-    //   position: "center",
-    //   backgroundColor: "#6366f1",
-    // }).showToast();
+    Toastify({
+      text: `Map chosen: ${finalMap.toUpperCase()}`,
+      duration: 4000,
+      gravity: "top",
+      position: "center",
+      backgroundColor: "#6366f1",
+    }).showToast();
 
     playerList.innerHTML = `
       <h2 class="text-2xl font-bold text-green-400 text-center mb-4">
-      Final Map: ${finalMap.toUpperCase()}
+        Final Map: ${finalMap.toUpperCase()}
       </h2>
       ${renderTeams(teamA, teamB)}
       <p class="text-center text-gray-300 mt-6">
-      Prepare to load into <strong>${finalMap.toUpperCase()}</strong>.
+        Prepare to load into <strong>${finalMap.toUpperCase()}</strong>.
       </p>
       <p class="text-center text-gray-300 mt-6">
-      IP: <strong><a href="steam://connect/cs2comp.datho.st:25876/tawnet" class="text-blue-400 underline">connect cs2comp.datho.st:25876; password tawnet</a></strong>.
+        IP: <strong><a href="steam://connect/cs2comp.datho.st:25876/tawnet" class="text-blue-400 underline">connect cs2comp.datho.st:25876; password tawnet</a></strong>.
       </p>
     `;
   });
@@ -212,14 +254,13 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   socket.on("sessionReset", () => {
-    sessionStorage.removeItem("playerName"); // Clear sessionStorage on reset
-    // Toastify({
-    //   text: "Session has been cleared by admin.",
-    //   duration: 4000,
-    //   gravity: "top",
-    //   position: "center",
-    //   backgroundColor: "#ef4444"
-    // }).showToast();
+    Toastify({
+      text: "Session has been cleared by admin.",
+      duration: 4000,
+      gravity: "top",
+      position: "center",
+      backgroundColor: "#ef4444",
+    }).showToast();
 
     playerList.innerHTML = "";
     nameInput.disabled = false;
@@ -229,15 +270,15 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   socket.on("warning", (message) => {
-    // Toastify({
-    //   text: message,
-    //   duration: 4000,
-    //   close: true,
-    //   gravity: "top",
-    //   position: "right",
-    //   backgroundColor: "#f97316",
-    //   stopOnFocus: true,
-    // }).showToast();
+    Toastify({
+      text: message,
+      duration: 4000,
+      close: true,
+      gravity: "top",
+      position: "right",
+      backgroundColor: "#f97316",
+      stopOnFocus: true,
+    }).showToast();
   });
 
   function renderTeams(teamA, teamB) {
@@ -246,13 +287,17 @@ window.addEventListener("DOMContentLoaded", () => {
         <div class="flex-1 bg-green-800 rounded-xl p-4 shadow-md">
           <h3 class="text-2xl font-bold text-center mb-2">Team Alpha</h3>
           <ul class="space-y-1 text-lg">
-            ${teamA.map(p => `<li class="text-white">${p.name}</li>`).join("")}
+            ${teamA
+              .map((p) => `<li class="text-white">${p.name}</li>`)
+              .join("")}
           </ul>
         </div>
         <div class="flex-1 bg-blue-800 rounded-xl p-4 shadow-md">
           <h3 class="text-2xl font-bold text-center mb-2">Team Beta</h3>
           <ul class="space-y-1 text-lg">
-            ${teamB.map(p => `<li class="text-white">${p.name}</li>`).join("")}
+            ${teamB
+              .map((p) => `<li class="text-white">${p.name}</li>`)
+              .join("")}
           </ul>
         </div>
       </div>

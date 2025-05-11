@@ -1,0 +1,43 @@
+<nav class="bg-gray-900 text-white shadow-md w-full h-16 flex items-center justify-between px-6 relative">
+  
+  <!-- Left: Logo -->
+  <div class="text-lg font-extrabold">
+    CS2 Matchmaker
+  </div>
+
+  <!-- Center: Navigation -->
+  <div class="absolute left-1/2 transform -translate-x-1/2 flex gap-8 text-sm font-medium">
+    <a href="/index.html" class="hover:text-gray-300 font-medium text-lg transition">Home</a>
+    <a id="adminLink" href="/admin" class="hover:text-gray-300 hidden font-medium text-lg transition">Admin Panel</a>
+  </div>
+
+  <!-- Logout -->
+  <div class="flex items-center space-x-4">
+    <button
+      id="logoutBtn"
+      class="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-1.5 rounded transition">
+      Logout
+    </button>
+  </div>
+</nav>
+
+<script>
+  fetch("/api/session-info", { credentials: "include" })
+    .then(res => res.json())
+    .then(data => {
+      if (data.role === 3) {
+        document.getElementById("adminLink").classList.remove("hidden");
+      }
+    });
+
+  document.getElementById("logoutBtn").addEventListener("click", async () => {
+    try {
+      const res = await fetch("/admin/logout", { method: "GET" });
+      if (res.redirected) {
+        window.location.href = res.url;
+      }
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
+  });
+</script>

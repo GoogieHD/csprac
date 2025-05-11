@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Register</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center h-screen">
+  <form id="registerForm" class="bg-gray-800 p-6 rounded shadow-lg space-y-4 max-w-sm w-full">
+    <h2 class="text-2xl font-bold text-center text-blue-400">Register</h2>
+
+    <input name="username" type="text" placeholder="Username" required class="w-full px-4 py-2 rounded text-black" />
+    <input name="password" type="password" placeholder="Password" required class="w-full px-4 py-2 rounded text-black" />
+    <input name="steamId" type="text" placeholder="Steam ID (64-bit)" required class="w-full px-4 py-2 rounded text-black" />
+    <p class="text-sm text-gray-400">
+      Find your Steam ID here: 
+      <a href="https://www.steamidfinder.com/" target="_blank" class="text-blue-400 hover:underline">steamidfinder.com</a>
+    </p>
+
+    <button type="submit" class="bg-blue-600 w-full py-2 rounded hover:bg-blue-700">Register</button>
+
+    <p id="statusMessage" class="text-center text-sm pt-2"></p>
+    <div class="text-center text-sm pt-2">
+      Already have an account? <a href="/login.html" class="text-blue-400 hover:underline">Login here</a>
+    </div>
+  </form>
+
+  <script>
+    const form = document.getElementById("registerForm");
+    const statusMessage = document.getElementById("statusMessage");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+
+      try {
+        const response = await fetch("/api/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          statusMessage.innerHTML = `Registered successfully! Rank: <strong class="text-green-300">${result.rank || "N/A"}</strong>. Redirecting...`;
+          statusMessage.className = "text-green-400 text-center text-sm pt-2";
+          setTimeout(() => window.location.href = "/login.html", 2500);
+        } else {
+          statusMessage.textContent = result.error || "Registration failed.";
+          statusMessage.className = "text-red-400 text-center text-sm pt-2";
+        }
+      } catch (err) {
+        statusMessage.textContent = "An unexpected error occurred.";
+        statusMessage.className = "text-red-400 text-center text-sm pt-2";
+      }
+    });
+  </script>
+</body>
+</html>
