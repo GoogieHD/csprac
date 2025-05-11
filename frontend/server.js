@@ -41,6 +41,21 @@ app.use(
   })
 );
 
+// Middleware to enforce authentication
+function isAuthenticated(req, res, next) {
+  if (req.session?.userId) return next();
+  res.redirect("/login.html");
+}
+
+// Apply authentication middleware to all routes except login and register
+app.use((req, res, next) => {
+  const publicPaths = ["/login.html", "/register.html", "/api/login", "/api/register"];
+  if (publicPaths.includes(req.path) || req.path.startsWith("/socket.io")) {
+    return next();
+  }
+  isAuthenticated(req, res, next);
+});
+
 // ─────── Role-Based Middleware ───────
 function isAdmin(req, res, next) {
   if (req.session?.role === 3) return next();
