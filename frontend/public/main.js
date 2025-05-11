@@ -1,4 +1,5 @@
 import { getPremierRankLabel } from "./utils/rankTier.js";
+
 const socket = io();
 
 window.addEventListener("DOMContentLoaded", () => {
@@ -63,13 +64,16 @@ window.addEventListener("DOMContentLoaded", () => {
             const rankTier = getPremierRankLabel(p.rank);
             const badge = p.rank
               ? `
-                <span class="ml-2 px-2 py-0.5 rounded-full font-bold text-xs border ${rankTier.color}">
-                  ${rankTier.tier}
-                </span>`
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full font-semibold text-xs text-white ${rankTier.color} shadow-md border-2 border-white">
+              ${p.rank}
+            </span>`
               : "";
-
             if (p.name === playerName) foundSelf = true;
-            return `<li>${p.name}${badge}</li>`;
+            return `
+            <li class="flex justify-between items-center">
+              <span>${p.name}</span>
+              ${badge}
+            </li>`;
           })
           .join("")}
       </ul>
@@ -169,6 +173,16 @@ window.addEventListener("DOMContentLoaded", () => {
       renderDraftUI(availablePlayers, teamA, teamB, currentCaptainId);
     }
   );
+
+  socket.on("toast", ({ type, message }) => {
+    Toastify({
+      text: message,
+      duration: 5000,
+      gravity: "top",
+      position: "center",
+      backgroundColor: type === "error" ? "#ef4444" : "#3b82f6",
+    }).showToast();
+  });
 
   socket.on("draftComplete", ({ teamA, teamB }) => {
     Toastify({

@@ -61,7 +61,7 @@ socket.on("playerPoolUpdate", (players) => {
   displayArea.innerHTML = `
     <h2 class="text-xl font-semibold mb-2 text-left">Current Player Pool:</h2>
     <ul class="list-disc list-inside space-y-1 text-gray-300 text-left">
-      ${players.map(p => `<li>${p.name}</li>`).join("")}
+      ${players.map((p) => `<li>${p.name}</li>`).join("")}
     </ul>
   `;
 });
@@ -76,12 +76,16 @@ socket.on("selectCaptains", () => {
   displayArea.innerHTML = `
     <h2 class="text-xl font-semibold mb-2">Select 2 Captains</h2>
     <ul id="captainSelectList" class="space-y-2">
-      ${currentPlayerPool.map(p => `
+      ${currentPlayerPool
+        .map(
+          (p) => `
         <li>
           <button data-id="${p.id}" class="w-full px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded text-white">
             ${p.name}
           </button>
-        </li>`).join("")}
+        </li>`
+        )
+        .join("")}
     </ul>
   `;
 
@@ -135,7 +139,10 @@ socket.on("draftComplete", ({ teamA, teamB }) => {
 
   document.getElementById("startMapVotingBtn").onclick = () => {
     const raw = document.getElementById("mapPoolInput").value;
-    const mapPool = raw.split(",").map(m => m.trim()).filter(m => m.length);
+    const mapPool = raw
+      .split(",")
+      .map((m) => m.trim())
+      .filter((m) => m.length);
 
     if (mapPool.length < 2) {
       alert("Map pool must have at least 2 maps.");
@@ -151,16 +158,20 @@ socket.on("yourTurnToPick", ({ availablePlayers }) => {
   displayArea.innerHTML = `
     <h2 class="text-xl font-semibold mb-2">Pick a teammate</h2>
     <ul class="space-y-2">
-      ${availablePlayers.map(p => `
+      ${availablePlayers
+        .map(
+          (p) => `
         <li>
           <button data-id="${p.id}" class="w-full px-4 py-2 bg-yellow-500 hover:bg-yellow-600 rounded text-black">
             ${p.name}
           </button>
-        </li>`).join("")}
+        </li>`
+        )
+        .join("")}
     </ul>
   `;
 
-  document.querySelectorAll("button[data-id]").forEach(btn => {
+  document.querySelectorAll("button[data-id]").forEach((btn) => {
     btn.onclick = () => {
       const id = btn.getAttribute("data-id");
       socket.emit("pickPlayer", { playerId: id });
@@ -169,26 +180,37 @@ socket.on("yourTurnToPick", ({ availablePlayers }) => {
 });
 
 // Map voting in progress
-socket.on("mapVotingStarted", ({ remainingMaps, currentCaptain, captains }) => {
+socket.on("mapVotingStarted", ({ remainingMaps, currentCaptain }) => {
   const isCaptain = socket.id === currentCaptain;
 
-  displayArea.innerHTML = `
+  playerList.innerHTML = `
     <h2 class="text-xl font-semibold mb-4">Map Voting</h2>
-    <p class="mb-2">
-      ${isCaptain ? "Your turn to ban a map" : "Waiting for the current captain to pick..."}
-    </p>
-    <ul class="grid grid-cols-2 gap-4">
-      ${remainingMaps.map(map => `
+    <p class="mb-2">${
+      isCaptain ? "Your turn to ban a map" : "Waiting for other captain..."
+    }</p>
+    <ul class="grid grid-cols-2 md:grid-cols-3 gap-4">
+      ${remainingMaps
+        .map(
+          (map) => `
         <li>
-          <button data-map="${map}" class="w-full px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white ${!isCaptain ? 'opacity-50 cursor-not-allowed' : ''}">
+          <button 
+            data-map="${map}" 
+            class="w-full px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium ${
+              !isCaptain ? "opacity-50 cursor-not-allowed" : ""
+            }"
+            ${!isCaptain ? "disabled" : ""}
+          >
             ${map}
           </button>
-        </li>`).join("")}
+        </li>
+      `
+        )
+        .join("")}
     </ul>
   `;
 
   if (isCaptain) {
-    document.querySelectorAll("button[data-map]").forEach(btn => {
+    document.querySelectorAll("button[data-map]").forEach((btn) => {
       btn.onclick = () => {
         const map = btn.getAttribute("data-map");
         socket.emit("banMap", { map });
@@ -217,13 +239,13 @@ function renderTeams(teamA, teamB) {
       <div class="flex-1 bg-green-800 rounded-xl p-4 shadow-md">
         <h3 class="text-2xl font-bold text-center mb-2">Team Alpha</h3>
         <ul class="space-y-1 text-lg">
-          ${teamA.map(p => `<li class="text-white">${p.name}</li>`).join("")}
+          ${teamA.map((p) => `<li class="text-white">${p.name}</li>`).join("")}
         </ul>
       </div>
       <div class="flex-1 bg-blue-800 rounded-xl p-4 shadow-md">
         <h3 class="text-2xl font-bold text-center mb-2">Team Beta</h3>
         <ul class="space-y-1 text-lg">
-          ${teamB.map(p => `<li class="text-white">${p.name}</li>`).join("")}
+          ${teamB.map((p) => `<li class="text-white">${p.name}</li>`).join("")}
         </ul>
       </div>
     </div>

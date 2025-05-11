@@ -181,6 +181,7 @@ class SessionManager {
 
   // ─── Map Veto Logic ─────────────────────────────────
 
+
   setMapPool(maps) {
     this.mapPool = [...maps];
     this.veto.remainingMaps = [...maps];
@@ -210,6 +211,7 @@ class SessionManager {
   }
 
   getFinalMap() {
+    if (this.veto.remainingMaps.length === 0) return null;
     return this.veto.remainingMaps.length === 1
       ? this.veto.remainingMaps[0]
       : null;

@@ -13,7 +13,6 @@ const sharedSession = require("express-socket.io-session");
 
 const SessionManager = require("./src/logic/SessionManager");
 
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
@@ -30,11 +29,12 @@ MongoClient.connect(mongoUrl, { useUnifiedTopology: true })
     SessionManager.setDB(db);
 
     if (process.env.NODE_ENV === "development") {
-      ["Dev1", "Dev2", "Dev3", "Dev4", "Dev5", "Dev6", "Dev7", "Dev8"].forEach(async (name, i) => {
-        await SessionManager.addPlayer(`fakePlayer${i}`, name);
-      });
+      ["Dev1", "Dev2", "Dev3", "Dev4", "Dev5", "Dev6", "Dev7", "Dev8"].forEach(
+        async (name, i) => {
+          await SessionManager.addPlayer(`fakePlayer${i}`, name);
+        }
+      );
     }
-    
   })
   .catch((err) => console.error("MongoDB connection error:", err));
 
@@ -150,7 +150,7 @@ app.post("/api/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     console.log("[Register] Fetching CS2 rank...");
-    const cs2Rank = await getCS2RankFromSteam(steamId);
+    const cs2Rank = await getCS2RankFromSteam(steamId, 0, io);
     console.log("[Register] Rank fetched:", cs2Rank);
 
     const person = { name, birth_date, gender, address, profile_picture: "" };
@@ -327,10 +327,30 @@ io.on("connection", (socket) => {
     if (!result) return;
 
     io.emit("draftUpdate", result);
+
     if (result.availablePlayers.length > 0) {
       io.to(result.currentCaptain).emit("yourTurnToPick", result);
     } else {
       io.emit("draftComplete", { teamA: result.teamA, teamB: result.teamB });
+
+      // Auto-start map voting
+      const mapPool = [
+        "Mirage", "Inferno", "Nuke", "Overpass",
+        "Ancient", "Dust 2", "Cache", "Cobblestone",
+        "Season", "Anubis"
+      ];
+      SessionManager.setMapPool(mapPool);
+      const startCaptain =
+        Math.random() < 0.5
+          ? SessionManager.veto.captains.A.id
+          : SessionManager.veto.captains.B.id;
+      SessionManager.veto.currentCaptain = startCaptain;
+
+      io.emit("mapVotingStarted", {
+        remainingMaps: mapPool,
+        currentCaptain: startCaptain,
+        captains: SessionManager.veto.captains,
+      });
     }
   });
 
@@ -350,29 +370,25 @@ io.on("connection", (socket) => {
   });
 
   socket.on("banMap", ({ map }) => {
-    const veto = SessionManager.veto;
-    veto.remainingMaps = veto.remainingMaps.filter((m) => m !== map);
-    veto.banned.push(map);
+  const vetoResult = SessionManager.banMap(map);
+  if (!vetoResult) return;
 
-    if (veto.remainingMaps.length === 1) {
-      const finalMap = veto.remainingMaps[0];
-      io.emit("mapChosen", {
-        finalMap,
-        teamA: SessionManager.draft.teamA,
-        teamB: SessionManager.draft.teamB,
-      });
-    } else {
-      veto.currentCaptain =
-        veto.currentCaptain === veto.captains.A.id
-          ? veto.captains.B.id
-          : veto.captains.A.id;
-      io.emit("mapVotingStarted", {
-        remainingMaps: veto.remainingMaps,
-        currentCaptain: veto.currentCaptain,
-        captains: veto.captains,
-      });
-    }
-  });
+  if (vetoResult.remainingMaps.length === 1) {
+    const finalMap = vetoResult.remainingMaps[0];
+    io.emit("mapChosen", {
+      finalMap,
+      teamA: SessionManager.draft.teamA,
+      teamB: SessionManager.draft.teamB,
+    });
+  } else {
+    io.emit("mapVotingStarted", {
+      remainingMaps: vetoResult.remainingMaps,
+      currentCaptain: vetoResult.currentCaptain,
+      captains: SessionManager.veto.captains,
+    });
+  }
+});
+
 
   socket.on("clearSession", () => {
     SessionManager.reset();
