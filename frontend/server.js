@@ -13,6 +13,7 @@ const sharedSession = require("express-socket.io-session");
 
 const SessionManager = require("./src/logic/SessionManager");
 
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
@@ -26,6 +27,14 @@ MongoClient.connect(mongoUrl, { useUnifiedTopology: true })
   .then((client) => {
     console.log("Connected to MongoDB");
     db = client.db(dbName);
+    SessionManager.setDB(db);
+
+    if (process.env.NODE_ENV === "development") {
+      ["Dev1", "Dev2", "Dev3", "Dev4", "Dev5", "Dev6", "Dev7", "Dev8"].forEach(async (name, i) => {
+        await SessionManager.addPlayer(`fakePlayer${i}`, name);
+      });
+    }
+    
   })
   .catch((err) => console.error("MongoDB connection error:", err));
 
@@ -188,13 +197,13 @@ app.post("/api/login", async (req, res) => {
 });
 
 // ─────── Fake Players for Dev ───────
-if (process.env.NODE_ENV === "development") {
-  ["Dev1", "Dev2", "Dev3", "Dev4", "Dev5", "Dev6", "Dev7", "Dev8"].forEach(
-    (name, i) => {
-      SessionManager.addPlayer(`fakePlayer${i}`, name);
-    }
-  );
-}
+// if (process.env.NODE_ENV === "development") {
+//   ["Dev1", "Dev2", "Dev3", "Dev4", "Dev5", "Dev6", "Dev7", "Dev8"].forEach(
+//     (name, i) => {
+//       SessionManager.addPlayer(`fakePlayer${i}`, name);
+//     }
+//   );
+// }
 
 // ─────── Matchmaking API ───────
 app.post("/api/start-match", async (req, res) => {

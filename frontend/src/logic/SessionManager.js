@@ -13,6 +13,10 @@ class SessionManager {
     this.mapPool = [];
   }
 
+  setDB(dbInstance) {
+    this.db = dbInstance;
+  }
+
   reset() {
     this.playerQueue = [];
     this.sessionStarted = false;
@@ -28,7 +32,7 @@ class SessionManager {
 
   // ─── Player Management ───────────────────────────────
 
-  async addPlayer(id, name, db) {
+  async addPlayer(id, name) {
     const existing = this.playerQueue.find((p) => p.name === name);
     if (existing) {
       existing.id = id;
@@ -40,7 +44,9 @@ class SessionManager {
     // Fetch rank from DB
     let rank = "Unknown";
     try {
-      const user = await db.collection("users").findOne({ username: name });
+      const user = await this.db
+        .collection("users")
+        .findOne({ username: name });
       if (user) rank = user.rank || "Unknown";
     } catch (err) {
       console.error("[SessionManager] DB lookup failed for user:", name, err);
