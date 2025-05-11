@@ -8,7 +8,7 @@ const axios = require("axios");
 const cors = require("cors");
 const { MongoClient, ObjectId } = require("mongodb");
 const crypto = require("crypto");
-const nodemailer = require("nodemailer");
+// const nodemailer = require("nodemailer");
 
 const SessionManager = require("./src/logic/SessionManager");
 
@@ -122,7 +122,7 @@ app.get("/admin/logout", (req, res) => {
 // ─────── User Registration/Login ───────
 app.post("/api/register", async (req, res) => {
   try {
-    const { username, password, email, name, birth_date, gender, address } = req.body;
+    const { username, password, rank, name, birth_date, gender, address } = req.body;
 
     const token = crypto.randomBytes(20).toString("hex");
 
@@ -134,7 +134,7 @@ app.post("/api/register", async (req, res) => {
     const user = {
       username,
       password,
-      email,
+      rank,
       verification_token: token,
       is_verified: true,
       role: 1,
