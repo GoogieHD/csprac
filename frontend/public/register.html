@@ -42,7 +42,7 @@
         if (response.ok) {
           statusMessage.textContent = "Registered successfully! Redirecting to login...";
           statusMessage.className = "text-green-400 text-center text-sm pt-2";
-          setTimeout(() => window.location.href = "/index.html", 2000);
+          setTimeout(() => window.location.href = "/login.html", 2000);
         } else {
           statusMessage.textContent = result.error || "Registration failed.";
           statusMessage.className = "text-red-400 text-center text-sm pt-2";

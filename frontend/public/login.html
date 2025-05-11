@@ -41,14 +41,7 @@
         }
 
         const result = await response.json();
-        const role = result.role;
-
-        if (role === 3) {
-          window.location.href = "/admin.html";
-        } else {
-          window.location.href = "/index.html"; 
-        }
-
+        window.location.href = "/index.html"; // Redirect to the main page after login
       } catch (err) {
         console.error(err);
         errorElem.textContent = "Something went wrong.";
