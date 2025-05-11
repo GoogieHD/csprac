@@ -28,21 +28,28 @@ class SessionManager {
 
   // ─── Player Management ───────────────────────────────
 
-  addPlayer(id, name) {
-    const existing = this.playerQueue.find(p => p.name === name);
+  async addPlayer(id, name, db) {
+    const existing = this.playerQueue.find((p) => p.name === name);
     if (existing) {
       existing.id = id;
       return existing;
     }
-  
+
     if (this.sessionStarted || this.playerQueue.length >= 10) return null;
-  
-    const player = new Player(id, name);
+
+    // Fetch rank from DB
+    let rank = "Unknown";
+    try {
+      const user = await db.collection("users").findOne({ username: name });
+      if (user) rank = user.rank || "Unknown";
+    } catch (err) {
+      console.error("[SessionManager] DB lookup failed for user:", name, err);
+    }
+
+    const player = new Player(id, name, rank);
     this.playerQueue.push(player);
     return player;
   }
-  
-  
 
   removePlayer(id) {
     this.playerQueue = this.playerQueue.filter((p) => p.id !== id);
@@ -54,6 +61,7 @@ class SessionManager {
       name: p.name,
       team: p.team,
       isCaptain: p.isCaptain,
+      rank: p.rank || "Unknown",
     }));
   }
 

@@ -9,7 +9,7 @@ const cors = require("cors");
 const { MongoClient, ObjectId } = require("mongodb");
 const crypto = require("crypto");
 const bcrypt = require("bcrypt");
-// const nodemailer = require("nodemailer");
+const sharedSession = require("express-socket.io-session");
 
 const SessionManager = require("./src/logic/SessionManager");
 
@@ -50,7 +50,12 @@ function isAuthenticated(req, res, next) {
 
 // Apply authentication middleware to all routes except login and register
 app.use((req, res, next) => {
-  const publicPaths = ["/login.html", "/register.html", "/api/login", "/api/register"];
+  const publicPaths = [
+    "/login.html",
+    "/register.html",
+    "/api/login",
+    "/api/register",
+  ];
   if (publicPaths.includes(req.path) || req.path.startsWith("/socket.io")) {
     return next();
   }
@@ -68,7 +73,6 @@ function isAdmin(req, res, next) {
 //   return res.status(403).send("Forbidden");
 // }
 
-
 const PORT = process.env.PORT || 3000;
 
 app.get("/api/session-info", (req, res) => {
@@ -82,8 +86,6 @@ app.get("/api/session-info", (req, res) => {
     role: req.session.role,
   });
 });
-
-
 
 app.use("/public/admin.html", (req, res) => {
   res.status(403).send("Forbidden");
@@ -119,51 +121,49 @@ app.post("/admin/login", async (req, res) => {
   }
 });
 
-
 app.get("/admin/logout", (req, res) => {
   req.session.destroy(() => {
     res.redirect("/login.html");
   });
 });
 
-// ─────── Email Setup ───────
-// const transporter = nodemailer.createTransport({
-//   service: "gmail",
-//   auth: {
-//     user: process.env.EMAIL_USER,
-//     pass: process.env.EMAIL_PASS,
-//   },
-// });
-
 // ─────── User Registration/Login ───────
+
+const { getCS2RankFromSteam } = require("./src/utils/steam");
 
 app.post("/api/register", async (req, res) => {
   try {
-    const { username, password, rank, name, birth_date, gender, address } = req.body;
+    console.log("[Register] Incoming registration:", req.body.username);
 
+    const { username, password, steamId, name, birth_date, gender, address } =
+      req.body;
     const token = crypto.randomBytes(20).toString("hex");
-
-    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert into `person` collection
+    console.log("[Register] Fetching CS2 rank...");
+    const cs2Rank = await getCS2RankFromSteam(steamId);
+    console.log("[Register] Rank fetched:", cs2Rank);
+
     const person = { name, birth_date, gender, address, profile_picture: "" };
     const personResult = await db.collection("person").insertOne(person);
 
-    // Insert into `users` collection
     const user = {
       username,
       password: hashedPassword,
-      rank,
+      steamId,
+      rank: cs2Rank,
       verification_token: token,
       is_verified: true,
       role: 1,
       person_id: personResult.insertedId,
     };
+
     await db.collection("users").insertOne(user);
 
-    // Respond immediately (no email)
-    res.status(200).json({ message: "Registration successful!" });
+    console.log("[Register] Registration complete for:", username);
+    res
+      .status(200)
+      .json({ message: "Registration successful!", rank: cs2Rank });
   } catch (err) {
     console.error("Registration error:", err);
     res.status(500).json({ error: "Registration failed. Please try again." });
@@ -189,9 +189,11 @@ app.post("/api/login", async (req, res) => {
 
 // ─────── Fake Players for Dev ───────
 if (process.env.NODE_ENV === "development") {
-  ["Dev1", "Dev2", "Dev3", "Dev4"].forEach((name, i) => {
-    SessionManager.addPlayer(`fakePlayer${i}`, name);
-  });
+  ["Dev1", "Dev2", "Dev3", "Dev4", "Dev5", "Dev6", "Dev7", "Dev8"].forEach(
+    (name, i) => {
+      SessionManager.addPlayer(`fakePlayer${i}`, name);
+    }
+  );
 }
 
 // ─────── Matchmaking API ───────
@@ -203,8 +205,14 @@ app.post("/api/start-match", async (req, res) => {
       {
         game_server_id: process.env.DATHOST_SERVER_ID,
         map,
-        team1: { name: "Team Alpha", players: teamA.map(p => ({ steam_id: p.steamId })) },
-        team2: { name: "Team Beta", players: teamB.map(p => ({ steam_id: p.steamId })) }
+        team1: {
+          name: "Team Alpha",
+          players: teamA.map((p) => ({ steam_id: p.steamId })),
+        },
+        team2: {
+          name: "Team Beta",
+          players: teamB.map((p) => ({ steam_id: p.steamId })),
+        },
       },
       {
         auth: {
@@ -220,13 +228,25 @@ app.post("/api/start-match", async (req, res) => {
   }
 });
 
+io.use(
+  sharedSession(
+    session({
+      secret: process.env.SESSION_SECRET,
+      resave: false,
+      saveUninitialized: true,
+    }),
+    { autoSave: true }
+  )
+);
+
 // ─────── Socket.io Logic ───────
 io.on("connection", (socket) => {
   console.log(`Connected: ${socket.id}`);
 
-  socket.on("attend", (name) => {
-    const player = SessionManager.addPlayer(socket.id, name);
+  socket.on("attend", async (name) => {
+    const player = await SessionManager.addPlayer(socket.id, name, db);
     if (!player) return;
+
     io.emit("playerPoolUpdate", SessionManager.getPlayerList());
 
     if (SessionManager.draft) {
@@ -238,12 +258,20 @@ io.on("connection", (socket) => {
 
     const finalMap = SessionManager.getFinalMap?.();
     if (finalMap) {
-      socket.emit("mapChosen", { finalMap, teamA: SessionManager.draft?.teamA || [], teamB: SessionManager.draft?.teamB || [] });
+      socket.emit("mapChosen", {
+        finalMap,
+        teamA: SessionManager.draft?.teamA || [],
+        teamB: SessionManager.draft?.teamB || [],
+      });
     }
   });
 
   socket.on("startSession", ({ mode }) => {
-    if (SessionManager.playerQueue.length !== 10 || SessionManager.sessionStarted) return;
+    if (
+      SessionManager.playerQueue.length !== 10 ||
+      SessionManager.sessionStarted
+    )
+      return;
     SessionManager.sessionStarted = true;
 
     if (mode === "random") {
@@ -252,7 +280,10 @@ io.on("connection", (socket) => {
         A: teamA[Math.floor(Math.random() * 5)],
         B: teamB[Math.floor(Math.random() * 5)],
       };
-      SessionManager.veto = { captains: vetoCaptains, currentCaptain: vetoCaptains.A.id };
+      SessionManager.veto = {
+        captains: vetoCaptains,
+        currentCaptain: vetoCaptains.A.id,
+      };
       io.emit("sessionStarted", { teamA, teamB, mode });
       io.emit("draftComplete", { teamA, teamB });
     } else {
@@ -264,11 +295,21 @@ io.on("connection", (socket) => {
     const captains = SessionManager.setCaptains(captain1Id, captain2Id);
     if (!captains) return;
 
-    SessionManager.veto = { captains: { A: captains[0], B: captains[1] }, currentCaptain: captains[0].id };
+    SessionManager.veto = {
+      captains: { A: captains[0], B: captains[1] },
+      currentCaptain: captains[0].id,
+    };
     SessionManager.startDraft([captains[0]], [captains[1]]);
 
-    io.to(SessionManager.draft.currentCaptain).emit("yourTurnToPick", SessionManager.draft);
-    io.emit("sessionStarted", { teamA: [captains[0]], teamB: [captains[1]], mode: "captains" });
+    io.to(SessionManager.draft.currentCaptain).emit(
+      "yourTurnToPick",
+      SessionManager.draft
+    );
+    io.emit("sessionStarted", {
+      teamA: [captains[0]],
+      teamB: [captains[1]],
+      mode: "captains",
+    });
     io.emit("draftUpdate", SessionManager.draft);
   });
 
@@ -287,9 +328,16 @@ io.on("connection", (socket) => {
   socket.on("startMapVoting", ({ mapPool }) => {
     if (!Array.isArray(mapPool) || mapPool.length < 2) return;
     SessionManager.setMapPool(mapPool);
-    const startCaptain = Math.random() < 0.5 ? SessionManager.veto.captains.A.id : SessionManager.veto.captains.B.id;
+    const startCaptain =
+      Math.random() < 0.5
+        ? SessionManager.veto.captains.A.id
+        : SessionManager.veto.captains.B.id;
     SessionManager.veto.currentCaptain = startCaptain;
-    io.emit("mapVotingStarted", { remainingMaps: mapPool, currentCaptain: startCaptain, captains: SessionManager.veto.captains });
+    io.emit("mapVotingStarted", {
+      remainingMaps: mapPool,
+      currentCaptain: startCaptain,
+      captains: SessionManager.veto.captains,
+    });
   });
 
   socket.on("banMap", ({ map }) => {
@@ -299,10 +347,21 @@ io.on("connection", (socket) => {
 
     if (veto.remainingMaps.length === 1) {
       const finalMap = veto.remainingMaps[0];
-      io.emit("mapChosen", { finalMap, teamA: SessionManager.draft.teamA, teamB: SessionManager.draft.teamB });
+      io.emit("mapChosen", {
+        finalMap,
+        teamA: SessionManager.draft.teamA,
+        teamB: SessionManager.draft.teamB,
+      });
     } else {
-      veto.currentCaptain = veto.currentCaptain === veto.captains.A.id ? veto.captains.B.id : veto.captains.A.id;
-      io.emit("mapVotingStarted", { remainingMaps: veto.remainingMaps, currentCaptain: veto.currentCaptain, captains: veto.captains });
+      veto.currentCaptain =
+        veto.currentCaptain === veto.captains.A.id
+          ? veto.captains.B.id
+          : veto.captains.A.id;
+      io.emit("mapVotingStarted", {
+        remainingMaps: veto.remainingMaps,
+        currentCaptain: veto.currentCaptain,
+        captains: veto.captains,
+      });
     }
   });
 

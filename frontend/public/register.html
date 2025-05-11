@@ -11,7 +11,12 @@
 
     <input name="username" type="text" placeholder="Username" required class="w-full px-4 py-2 rounded text-black" />
     <input name="password" type="password" placeholder="Password" required class="w-full px-4 py-2 rounded text-black" />
-    <input name="rank" type="text" placeholder="Rank" required class="w-full px-4 py-2 rounded text-black" />
+    <input name="steamId" type="text" placeholder="Steam ID (64-bit)" required class="w-full px-4 py-2 rounded text-black" />
+    <p class="text-sm text-gray-400">
+      Find your Steam ID here: 
+      <a href="https://www.steamidfinder.com/" target="_blank" class="text-blue-400 hover:underline">steamidfinder.com</a>
+    </p>
+
     <button type="submit" class="bg-blue-600 w-full py-2 rounded hover:bg-blue-700">Register</button>
 
     <p id="statusMessage" class="text-center text-sm pt-2"></p>
@@ -40,9 +45,9 @@
         const result = await response.json();
 
         if (response.ok) {
-          statusMessage.textContent = "Registered successfully! Redirecting to login...";
+          statusMessage.innerHTML = `Registered successfully! Rank: <strong class="text-green-300">${result.rank || "N/A"}</strong>. Redirecting...`;
           statusMessage.className = "text-green-400 text-center text-sm pt-2";
-          setTimeout(() => window.location.href = "/login.html", 2000);
+          setTimeout(() => window.location.href = "/login.html", 2500);
         } else {
           statusMessage.textContent = result.error || "Registration failed.";
           statusMessage.className = "text-red-400 text-center text-sm pt-2";
