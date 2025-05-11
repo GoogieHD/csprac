@@ -10,7 +10,7 @@
 
 <body class="bg-gray-900 text-white min-h-screen flex items-center justify-center px-4 py-8">
 
-  <main class="w-full max-w-2xl bg-gray-800 rounded-2xl shadow-2xl p-6 space-y-6">
+  <main class="w-full max-w-5xl bg-gray-800 rounded-2xl shadow-2xl p-6 space-y-6">
     <header class="text-center">
       <h1 class="text-3xl font-extrabold text-red-400 tracking-tight">
         Admin Control Panel
@@ -18,53 +18,60 @@
       <p class="text-sm text-gray-400 mt-1">Control team settings and map veto</p>
     </header>
 
-    <section class="space-y-2">
-      <label for="adminNameInput" class="block text-left text-sm font-medium text-gray-200">
-        Join as Player (optional)
-      </label>
-      <input id="adminNameInput" type="text" placeholder="Enter your name"
-        class="w-full px-4 py-2 rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400" />
-      <button id="adminJoinBtn"
-        class="w-full bg-red-600 hover:bg-red-700 font-bold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-red-400">
-        Join as Player
-      </button>
-    </section>
+    <div class="flex flex-col md:flex-row gap-6">
+      <!-- Left Column: Admin Options -->
+      <section class="w-full md:w-1/2 space-y-6">
+        <section class="space-y-2">
+          <label for="adminNameInput" class="block text-left text-sm font-medium text-gray-200">
+            Join as Player (optional)
+          </label>
+          <input id="adminNameInput" type="text" placeholder="Enter your name"
+            class="w-full px-4 py-2 rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400" />
+          <button id="adminJoinBtn"
+            class="w-full bg-red-600 hover:bg-red-700 font-bold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-red-400">
+            Join as Player
+          </button>
+        </section>
 
-    <section class="space-y-4">
-      <label for="teamModeSelect" class="block text-left text-sm font-medium text-gray-200">
-        Team Selection Mode
-      </label>
-      <select id="teamModeSelect"
-        class="w-full px-4 py-2 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-red-400">
-        <option value="random">Random</option>
-        <option value="captains">Captains</option>
-      </select>
+        <section class="space-y-4">
+          <label for="teamModeSelect" class="block text-left text-sm font-medium text-gray-200">
+            Team Selection Mode
+          </label>
+          <select id="teamModeSelect"
+            class="w-full px-4 py-2 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-red-400">
+            <option value="random">Random</option>
+            <option value="captains">Captains</option>
+          </select>
 
-      <label for="mapPoolInput" class="block text-left text-sm font-medium text-gray-200 mt-4">
-        Map Pool (comma-separated)
-      </label>
-      <input id="mapPoolInput"
-        class="w-full px-4 py-2 rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400"
-        value="Mirage, Inferno, Nuke, Overpass, Ancient, Dust 2, Cache, Cobblestone, Season, Anubis" />
-    </section>
+          <label for="mapPoolInput" class="block text-left text-sm font-medium text-gray-200 mt-4">
+            Map Pool (comma-separated)
+          </label>
+          <input id="mapPoolInput"
+            class="w-full px-4 py-2 rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400"
+            value="Mirage, Inferno, Nuke, Overpass, Ancient, Dust 2, Cache, Cobblestone, Season, Anubis" />
+        </section>
 
-    <button id="adminStartBtn"
-      class="bg-green-600 hover:bg-green-700 w-full font-bold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-400">
-      Start Session
-    </button>
-    <button id="adminResetBtn"
-      class="bg-yellow-500 hover:bg-yellow-600 w-full font-bold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-300">
-      Restart Session
-    </button>
+        <div class="space-y-4">
+          <button id="adminStartBtn"
+            class="bg-green-600 hover:bg-green-700 w-full font-bold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-400">
+            Start Session
+          </button>
+          <button id="adminResetBtn"
+            class="bg-yellow-500 hover:bg-yellow-600 w-full font-bold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-300">
+            Restart Session
+          </button>
+        </div>
+      </section>
 
-    <section id="adminDisplayArea" class="w-full">
-      <!-- Dynamic session data goes here -->
-    </section>
+      <!-- Right Column: Session Display -->
+      <section id="adminDisplayArea" class="w-full md:w-1/2 bg-gray-700 rounded-lg p-4">
+        <!-- Dynamic session data goes here -->
+      </section>
+    </div>
 
     <footer class="text-sm text-gray-400 pt-4 text-center">
       <p>This panel is for authorized admins only.</p>
     </footer>
-
   </main>
 
   <script src="/socket.io/socket.io.js"></script>
