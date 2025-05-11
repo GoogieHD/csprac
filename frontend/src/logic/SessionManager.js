@@ -1,4 +1,5 @@
 const Player = require("../models/CustomPlayer");
+const UserDTO = require("../models/UserDTO");
 
 class SessionManager {
   constructor() {
@@ -28,6 +29,9 @@ class SessionManager {
       captains: null,
     };
     this.mapPool = [];
+    if (process.env.NODE_ENV === "development") {
+      this.addFakePlayers(8);
+    }
   }
 
   // ─── Player Management ───────────────────────────────
@@ -57,6 +61,7 @@ class SessionManager {
     return player;
   }
 
+
   removePlayer(id) {
     this.playerQueue = this.playerQueue.filter((p) => p.id !== id);
   }
@@ -69,6 +74,24 @@ class SessionManager {
       isCaptain: p.isCaptain,
       rank: p.rank || "Unknown",
     }));
+  }
+
+  addFakePlayers(count) {
+    const fakePlayers = [];
+    for (let i = 0; i < count; i++) {
+      const fakeDTO = new UserDTO({
+        id: `fake_${i}`,
+        username: `FakePlayer${i}`,
+        role: "player",
+      })
+      const fakePlayer = this.UserDTOtoPlayer(fakeDTO);
+      fakePlayers.push(fakePlayer);
+      this.playerQueue.push(fakePlayer);
+    }
+  }
+
+  UserDTOtoPlayer(userDTO) {
+    return new Player(userDTO.id, userDTO.username);
   }
 
   // ─── Team Assignment ────────────────────────────────
@@ -123,7 +146,7 @@ class SessionManager {
   pickPlayer(captainId, playerId) {
     if (!this.draft) return null;
 
-    const player = this.draft.availablePlayers.find((p) => p.id === playerId);
+    const player = this.draft.availablePlayers.find((p) => p.id == playerId);
     if (!player || captainId !== this.draft.currentCaptain) return null;
 
     const currentTeam = this.draft.teamA.find((p) => p.id === captainId)
@@ -136,10 +159,17 @@ class SessionManager {
       (p) => p.id !== playerId
     );
 
-    this.draft.currentCaptain =
-      captainId === this.draft.teamA[0].id
-        ? this.draft.teamB[0].id
-        : this.draft.teamA[0].id;
+    // Check if only one player is left and assign them to the other team
+    if (this.draft.availablePlayers.length === 1) {
+      const lastPlayer = this.draft.availablePlayers[0];
+      const otherTeam = currentTeam === this.draft.teamA ? this.draft.teamB : this.draft.teamA;
+      otherTeam.push(lastPlayer);
+      this.draft.availablePlayers = [];
+    }
+
+    // Ensure currentCaptain alternates between the two captains
+    const { A, B } = this.veto.captains;
+    this.draft.currentCaptain = captainId === A.id ? B.id : A.id;
 
     return {
       teamA: this.draft.teamA,
