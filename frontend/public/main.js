@@ -60,15 +60,18 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   socket.on("youAreCaptain", () => {
-    Toastify({
-      text: "You are a Captain! Get ready to pick your team.",
-      duration: 4000,
-      close: true,
-      gravity: "top",
-      position: "center",
-      backgroundColor: "#10b981",
-      stopOnFocus: true,
-    }).showToast();
+
+
+    //Toastify dont work
+    // Toastify({
+    //   text: "You are a Captain! Get ready to pick your team.",
+    //   duration: 4000,
+    //   close: true,
+    //   gravity: "top",
+    //   position: "center",
+    //   backgroundColor: "#10b981",
+    //   stopOnFocus: true,
+    // }).showToast();
   });
 
   function renderDraftUI(availablePlayers, teamA, teamB, captainId) {
@@ -136,13 +139,13 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   socket.on("draftComplete", ({ teamA, teamB }) => {
-    Toastify({
-      text: "Draft is complete!",
-      duration: 3000,
-      gravity: "top",
-      position: "center",
-      backgroundColor: "#4ade80",
-    }).showToast();
+    // Toastify({
+    //   text: "Draft is complete!",
+    //   duration: 3000,
+    //   gravity: "top",
+    //   position: "center",
+    //   backgroundColor: "#4ade80",
+    // }).showToast();
 
     playerList.innerHTML = renderTeams(teamA, teamB) + `
       <p class="text-green-300 text-center font-bold mt-4">
@@ -178,13 +181,13 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   socket.on("mapChosen", ({ finalMap, teamA, teamB }) => {
-    Toastify({
-      text: `Map chosen: ${finalMap.toUpperCase()}`,
-      duration: 4000,
-      gravity: "top",
-      position: "center",
-      backgroundColor: "#6366f1",
-    }).showToast();
+    // Toastify({
+    //   text: `Map chosen: ${finalMap.toUpperCase()}`,
+    //   duration: 4000,
+    //   gravity: "top",
+    //   position: "center",
+    //   backgroundColor: "#6366f1",
+    // }).showToast();
 
     playerList.innerHTML = `
       <h2 class="text-2xl font-bold text-green-400 text-center mb-4">
@@ -210,13 +213,13 @@ window.addEventListener("DOMContentLoaded", () => {
 
   socket.on("sessionReset", () => {
     sessionStorage.removeItem("playerName"); // Clear sessionStorage on reset
-    Toastify({
-      text: "Session has been cleared by admin.",
-      duration: 4000,
-      gravity: "top",
-      position: "center",
-      backgroundColor: "#ef4444"
-    }).showToast();
+    // Toastify({
+    //   text: "Session has been cleared by admin.",
+    //   duration: 4000,
+    //   gravity: "top",
+    //   position: "center",
+    //   backgroundColor: "#ef4444"
+    // }).showToast();
 
     playerList.innerHTML = "";
     nameInput.disabled = false;
@@ -226,15 +229,15 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   socket.on("warning", (message) => {
-    Toastify({
-      text: message,
-      duration: 4000,
-      close: true,
-      gravity: "top",
-      position: "right",
-      backgroundColor: "#f97316",
-      stopOnFocus: true,
-    }).showToast();
+    // Toastify({
+    //   text: message,
+    //   duration: 4000,
+    //   close: true,
+    //   gravity: "top",
+    //   position: "right",
+    //   backgroundColor: "#f97316",
+    //   stopOnFocus: true,
+    // }).showToast();
   });
 
   function renderTeams(teamA, teamB) {

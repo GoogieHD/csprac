@@ -132,9 +132,6 @@ class SessionManager {
     if (!this.draft) return null;
 
     const player = this.draft.availablePlayers.find((p) => p.id == playerId);
-    console.log("Player to pick:", player);
-    console.log("Player ID:", playerId);
-    console.log("Available Players:", this.draft.availablePlayers);
     if (!player || captainId !== this.draft.currentCaptain) return null;
 
     const currentTeam = this.draft.teamA.find((p) => p.id === captainId)
@@ -146,6 +143,14 @@ class SessionManager {
     this.draft.availablePlayers = this.draft.availablePlayers.filter(
       (p) => p.id !== playerId
     );
+
+    // Check if only one player is left and assign them to the other team
+    if (this.draft.availablePlayers.length === 1) {
+      const lastPlayer = this.draft.availablePlayers[0];
+      const otherTeam = currentTeam === this.draft.teamA ? this.draft.teamB : this.draft.teamA;
+      otherTeam.push(lastPlayer);
+      this.draft.availablePlayers = [];
+    }
 
     // Ensure currentCaptain alternates between the two captains
     const { A, B } = this.veto.captains;

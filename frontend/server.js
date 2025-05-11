@@ -14,7 +14,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 // ─────── Express Middleware ───────
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "public"))); // Ensure correct path to 'public' directory
 app.use(express.urlencoded({ extended: true }));
 
 app.use(
@@ -24,6 +24,9 @@ app.use(
     saveUninitialized: true,
   })
 );
+
+// Disable favicon requests
+app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // ─────── Admin Credentials ───────
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
