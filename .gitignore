@@ -9,3 +9,5 @@ node_modules/
 /frontend/.env
 .env
 .gitignore
+frontend/package-lock.json
+frontend/package.json
