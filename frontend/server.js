@@ -8,6 +8,7 @@ const axios = require("axios");
 const cors = require("cors");
 const { MongoClient, ObjectId } = require("mongodb");
 const crypto = require("crypto");
+const bcrypt = require("bcrypt");
 // const nodemailer = require("nodemailer");
 
 const SessionManager = require("./src/logic/SessionManager");
@@ -135,11 +136,15 @@ app.get("/admin/logout", (req, res) => {
 // });
 
 // ─────── User Registration/Login ───────
+
 app.post("/api/register", async (req, res) => {
   try {
     const { username, password, rank, name, birth_date, gender, address } = req.body;
 
     const token = crypto.randomBytes(20).toString("hex");
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Insert into `person` collection
     const person = { name, birth_date, gender, address, profile_picture: "" };
@@ -148,7 +153,7 @@ app.post("/api/register", async (req, res) => {
     // Insert into `users` collection
     const user = {
       username,
-      password,
+      password: hashedPassword,
       rank,
       verification_token: token,
       is_verified: true,
@@ -165,18 +170,19 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-
-
 app.post("/api/login", async (req, res) => {
   try {
     const { username, password } = req.body;
     const user = await db.collection("users").findOne({ username });
-    if (!user || user.password !== password) return res.status(401).json({ error: "Invalid login" });
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ error: "Invalid login" });
+    }
     req.session.userId = user._id;
     req.session.username = user.username;
     req.session.role = user.role;
     res.json({ message: "Login successful", user });
-  } catch {
+  } catch (err) {
+    console.error("Login error:", err);
     res.status(500).json({ error: "Login error" });
   }
 });
