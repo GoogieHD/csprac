@@ -1,11 +1,16 @@
 const SteamUser = require("steam-user");
 const GlobalOffensive = require("globaloffensive");
+const SteamTotp = require("steam-totp");
+
+const twoFactorCode = SteamTotp.generateAuthCode(
+      process.env.STEAM_SHARED_SECRET
+    );
 
 const steamCreds = {
-  accountName: process.env.STEAM_BOT_USERNAME,
-  password: process.env.STEAM_BOT_PASSWORD,
-  twoFactorCode: process.env.STEAM_GUARD_CODE,
-};
+      accountName: process.env.STEAM_BOT_USERNAME,
+      password: process.env.STEAM_BOT_PASSWORD,
+      twoFactorCode: twoFactorCode,
+    };
 
 function getCS2RankFromSteam(steamId64, attempt = 0, io) {
   return new Promise((resolve, reject) => {
