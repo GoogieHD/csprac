@@ -20,6 +20,7 @@
     "express-session": "^1.18.1",
     "express-socket.io-session": "^1.3.5",
     "globaloffensive": "^3.2.0",
+    "mongodb": "^6.16.0",
     "primeicons": "^7.0.0",
     "primevue": "^4.3.4",
     "puppeteer": "^24.8.2",
