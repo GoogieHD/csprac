@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: csprac-backend
+    name: csprac
     runtime: node
     plan: free
     buildCommand: "npm install"
@@ -9,24 +9,15 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: SESSION_SECRET
+        sync: false
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_DB
+        sync: false
       - key: STEAM_BOT_USERNAME
         sync: false
       - key: STEAM_BOT_PASSWORD
         sync: false
       - key: STEAM_GUARD_CODE
         sync: false
-      - key: MONGO_URI
-        sync: false
-      - key: MONGO_DB
-        sync: false
-
-  - type: web
-    name: csprac-frontend
-    runtime: node
-    plan: free
-    buildCommand: "npm install"
-    startCommand: "node server.js"
-    rootDir: frontend
-    envVars:
-      - key: NODE_ENV
-        value: production
