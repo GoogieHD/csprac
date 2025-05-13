@@ -22,6 +22,11 @@ services:
 
   - type: web
     name: csprac-frontend
-    runtime: static
+    runtime: node
+    plan: free
+    buildCommand: "npm install"
+    startCommand: "node server.js"
     rootDir: frontend
-    staticPublishPath: .
+    envVars:
+      - key: NODE_ENV
+        value: production
