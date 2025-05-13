@@ -11,7 +11,7 @@ const crypto = require("crypto");
 const bcrypt = require("bcrypt");
 const sharedSession = require("express-socket.io-session");
 
-const SessionManager = require("./src/logic/SessionManager");
+const SessionManager = require("./frontend/src/logic/SessionManager");
 
 const app = express();
 const server = http.createServer(app);
@@ -41,7 +41,7 @@ MongoClient.connect(mongoUrl, { useUnifiedTopology: true })
 // ─────── Middleware ───────
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, 'frontend', 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(
   session({
@@ -138,7 +138,7 @@ app.get("/admin/logout", (req, res) => {
 
 // ─────── User Registration/Login ───────
 
-const { getCS2RankFromSteam } = require("./src/utils/steam");
+const { getCS2RankFromSteam } = require("./frontend/src/utils/steam");
 
 app.post("/api/register", async (req, res) => {
   try {
