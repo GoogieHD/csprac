@@ -20,7 +20,7 @@ services:
       - key: MONGO_DB
         sync: false
 
-  - type: static
+  - type: static_site
     name: csprac-frontend
     rootDir: backend/frontend
     buildCommand: ""
