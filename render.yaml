@@ -25,10 +25,4 @@ services:
     rootDir: backend/frontend
     buildCommand: ""
     staticPublishPath: .
-"""
 
-secure_file_path = "/mnt/data/render-secure.yaml"
-with open(secure_file_path, "w") as f:
-    f.write(secure_render_yaml)
-
-secure_file_path
