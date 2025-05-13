@@ -1,0 +1,35 @@
+secure_render_yaml = """
+services:
+  - type: web
+    name: csprac-backend
+    env: node
+    plan: free
+    buildCommand: "npm install"
+    startCommand: "node server.js"
+    rootDir: .
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: STEAM_BOT_USERNAME
+        sync: false
+      - key: STEAM_BOT_PASSWORD
+        sync: false
+      - key: STEAM_GUARD_CODE
+        sync: false
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_DB
+        sync: false
+
+  - type: static
+    name: csprac-frontend
+    rootDir: backend/frontend
+    buildCommand: ""
+    staticPublishPath: .
+"""
+
+secure_file_path = "/mnt/data/render-secure.yaml"
+with open(secure_file_path, "w") as f:
+    f.write(secure_render_yaml)
+
+secure_file_path
