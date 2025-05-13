@@ -1,4 +1,3 @@
-secure_render_yaml = """
 services:
   - type: web
     name: csprac-backend
