@@ -1,7 +1,7 @@
 services:
   - type: web
     name: csprac-backend
-    env: node
+    runtime: node
     plan: free
     buildCommand: "npm install"
     startCommand: "node server.js"
@@ -20,9 +20,8 @@ services:
       - key: MONGO_DB
         sync: false
 
-  - type: static_site
+  - type: web
     name: csprac-frontend
+    runtime: static
     rootDir: backend/frontend
-    buildCommand: ""
     staticPublishPath: .
-
