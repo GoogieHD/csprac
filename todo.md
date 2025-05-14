@@ -5,11 +5,18 @@
 - Session reset
 - Final map + server IP display
 - **Database integration**
+- Login + Register system (including optional admin role)
+- Admin Panel (moved to /admin, restricted access)
+
+---
+
+## Live Bugs / Known Issues
+- Players can't join the lobby until the session is restarted via admin panel
+- Team/map voting breaks if a player leaves during the process (due to less than 10 players, causes state reset and session not correctly saving the user)
 
 ---
 
 ## Core Features
-- Add login system (optional admin role)
 - Prevent duplicate player names
 - Store match data in database
 - Restore session state on restart (optional)
@@ -17,19 +24,11 @@
 ---
 
 ## UI/UX Improvements
-- Add basic transitions (e.g. pick feedback, map veto)
 - Show idle animation or waiting screen during queue
-- Improve mobile layout responsiveness
-
----
-
-## Admin Panel
-- Move to separate /admin page
-- Restrict access to admins only
-
+- General UI overhaul
 ---
 
 ## Stretch Goals
 - Match history page or dashboard
-- Discord integration (export draft summary)
+- Discord/Dathost integration (export draft summary)
 - Team ready check before match start
