@@ -12,10 +12,19 @@ class SessionManager {
     };
     this.draft = null;
     this.mapPool = [];
+    this.socketIdMap = {};
   }
 
   setDB(dbInstance) {
     this.db = dbInstance;
+  }
+
+  setSocketIO(io) {
+    this.io = io;
+  }
+
+  getSocketIdForPlayer(name) {
+    return this.socketIdMap[name];
   }
 
   reset() {
@@ -29,15 +38,19 @@ class SessionManager {
       captains: null,
     };
     this.mapPool = [];
-    if (process.env.NODE_ENV === "development") {
-      this.addFakePlayers(8);
-    }
   }
 
   // ─── Player Management ───────────────────────────────
 
   async addPlayer(id, name) {
     const existing = this.playerQueue.find((p) => p.name === name);
+    this.socketIdMap[name] = id;
+
+    if (this.sessionStarted && this.playerQueue.length === 0) {
+      console.warn("[SessionManager] Inconsistent session state. Resetting.");
+      this.reset();
+    }
+
     if (existing) {
       existing.id = id;
       return existing;
@@ -61,6 +74,12 @@ class SessionManager {
     return player;
   }
 
+  removePlayerById(id) {
+    const player = this.playerQueue.find((p) => p.id === id);
+    if (!player) return null;
+    this.playerQueue = this.playerQueue.filter((p) => p.id !== id);
+    return player;
+  }
 
   removePlayer(id) {
     this.playerQueue = this.playerQueue.filter((p) => p.id !== id);
@@ -76,18 +95,30 @@ class SessionManager {
     }));
   }
 
-  addFakePlayers(count) {
-    const fakePlayers = [];
-    for (let i = 0; i < count; i++) {
-      const fakeDTO = new UserDTO({
-        id: `fake_${i}`,
-        username: `FakePlayer${i}`,
-        role: "player",
-      })
-      const fakePlayer = this.UserDTOtoPlayer(fakeDTO);
-      fakePlayers.push(fakePlayer);
-      this.playerQueue.push(fakePlayer);
-    }
+  addFakePlayer() {
+    // Zorg dat max 10 blijft
+    if (this.playerQueue.length >= 10 || this.sessionStarted) return false;
+
+    // Zoek unieke naam
+    let index = 1;
+    let name;
+    do {
+      name = `FakePlayer${index++}`;
+    } while (this.playerQueue.some((p) => p.name === name));
+
+    const fakePlayer = new Player(`fake_${Date.now()}`, name, "Unavailable");
+    this.playerQueue.push(fakePlayer);
+    return true;
+  }
+
+  getCurrentState() {
+    return {
+      sessionStarted: this.sessionStarted,
+      draft: this.draft,
+      veto: this.veto,
+      mapPool: this.mapPool,
+      players: this.getPlayerList(),
+    };
   }
 
   UserDTOtoPlayer(userDTO) {
@@ -119,9 +150,9 @@ class SessionManager {
       cap1.isCaptain = true;
       cap2.isCaptain = true;
 
-      this.veto.captains = {
-        A: cap1,
-        B: cap2,
+      this.veto = {
+        captains: { A: cap1.name, B: cap2.name },
+        currentCaptain: cap1.name,
       };
 
       return [cap1, cap2];
@@ -139,19 +170,20 @@ class SessionManager {
       availablePlayers: this.playerQueue.filter(
         (p) => !teamA.includes(p) && !teamB.includes(p)
       ),
-      currentCaptain: Math.random() < 0.5 ? teamA[0].id : teamB[0].id,
+      currentCaptain: Math.random() < 0.5 ? teamA[0].name : teamB[0].name,
     };
   }
 
-  pickPlayer(captainId, playerId) {
+  pickPlayer(captainName, playerId) {
     if (!this.draft) return null;
 
-    const player = this.draft.availablePlayers.find((p) => p.id == playerId);
-    if (!player || captainId !== this.draft.currentCaptain) return null;
+    const player = this.draft.availablePlayers.find((p) => p.id === playerId);
+    if (!player || captainName !== this.draft.currentCaptain) return null;
 
-    const currentTeam = this.draft.teamA.find((p) => p.id === captainId)
-      ? this.draft.teamA
-      : this.draft.teamB;
+    const currentTeam =
+      this.veto.captains.A === captainName
+        ? this.draft.teamA
+        : this.draft.teamB;
 
     currentTeam.push(player);
 
@@ -159,17 +191,18 @@ class SessionManager {
       (p) => p.id !== playerId
     );
 
-    // Check if only one player is left and assign them to the other team
+    // Als er nog maar 1 speler over is, auto-assign
     if (this.draft.availablePlayers.length === 1) {
       const lastPlayer = this.draft.availablePlayers[0];
-      const otherTeam = currentTeam === this.draft.teamA ? this.draft.teamB : this.draft.teamA;
+      const otherTeam =
+        currentTeam === this.draft.teamA ? this.draft.teamB : this.draft.teamA;
       otherTeam.push(lastPlayer);
       this.draft.availablePlayers = [];
     }
 
-    // Ensure currentCaptain alternates between the two captains
+    // Wissel captain
     const { A, B } = this.veto.captains;
-    this.draft.currentCaptain = captainId === A.id ? B.id : A.id;
+    this.draft.currentCaptain = captainName === A ? B : A;
 
     return {
       teamA: this.draft.teamA,
@@ -180,7 +213,6 @@ class SessionManager {
   }
 
   // ─── Map Veto Logic ─────────────────────────────────
-
 
   setMapPool(maps) {
     this.mapPool = [...maps];
@@ -194,12 +226,18 @@ class SessionManager {
     this.veto.remainingMaps = this.veto.remainingMaps.filter((m) => m !== map);
     this.veto.banned.push(map);
 
-    // Swap turn
+    if (this.veto.remainingMaps.length === 1) {
+      return {
+        remainingMaps: this.veto.remainingMaps,
+        finalMap: this.veto.remainingMaps[0],
+      };
+    }
+
     const current = this.veto.currentCaptain;
     const next =
-      current === this.veto.captains.A.id
-        ? this.veto.captains.B.id
-        : this.veto.captains.A.id;
+      current === this.veto.captains.A
+        ? this.veto.captains.B
+        : this.veto.captains.A;
 
     this.veto.currentCaptain = next;
 
@@ -211,7 +249,10 @@ class SessionManager {
   }
 
   getFinalMap() {
+    if (!this.veto || !Array.isArray(this.veto.remainingMaps)) return null;
+
     if (this.veto.remainingMaps.length === 0) return null;
+
     return this.veto.remainingMaps.length === 1
       ? this.veto.remainingMaps[0]
       : null;

@@ -59,11 +59,34 @@ socket.on("playerPoolUpdate", (players) => {
   startBtn.disabled = players.length !== 10;
 
   displayArea.innerHTML = `
-    <h2 class="text-xl font-semibold mb-2 text-left">Current Player Pool:</h2>
-    <ul class="list-disc list-inside space-y-1 text-gray-300 text-left">
-      ${players.map((p) => `<li>${p.name}</li>`).join("")}
-    </ul>
-  `;
+  <h2 class="text-xl font-semibold mb-2 text-left">Current Player Pool:</h2>
+  <ul class="space-y-1 text-gray-300 text-left">
+    ${players
+      .map(
+        (p) => `
+        <li class="flex justify-between items-center">
+          <span>${p.name}</span>
+          <button 
+            class="text-sm text-red-400 hover:text-red-600 px-2 py-1" 
+            data-kick="${p.id}"
+          >
+            Kick
+          </button>
+        </li>`
+      )
+      .join("")}
+  </ul>
+`;
+
+  // Bind kick events
+  document.querySelectorAll("button[data-kick]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const playerId = btn.getAttribute("data-kick");
+      if (confirm("Kick this player from the lobby?")) {
+        socket.emit("kickPlayer", { playerId });
+      }
+    });
+  });
 });
 
 // Captain selection mode
@@ -218,6 +241,12 @@ socket.on("mapVotingStarted", ({ remainingMaps, currentCaptain }) => {
     });
   }
 });
+
+const addFakeBtn = document.getElementById("addFakePlayerBtn");
+
+addFakeBtn.onclick = () => {
+  socket.emit("addFakePlayer");
+};
 
 // Final map chosen and show teams
 socket.on("mapChosen", ({ finalMap, teamA, teamB }) => {

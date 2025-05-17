@@ -1,83 +1,106 @@
 import { getPremierRankLabel } from "./utils/rankTier.js";
 
-const socket = io();
+let socket;
+let allPlayers = [];
+let playerName = "";
+let playerUsername = "";
+let currentCaptainId = null;
+let isAdmin = false;
 
 window.addEventListener("DOMContentLoaded", () => {
+  if (window.socketInitialized) {
+    console.warn("[Client] Socket already initialized, skipping.");
+    return;
+  }
+  window.socketInitialized = true;
+
+  if (window.__SOCKET_ALREADY_CONNECTED__) {
+    console.warn("[Client] Socket already connected. Skipping init.");
+    return;
+  }
+  window.__SOCKET_ALREADY_CONNECTED__ = true;
+
+  socket = io();
+  console.log("[Client] Socket initialized:", socket.id);
+
   const attendBtn = document.getElementById("attendBtn");
   const nameInput = document.getElementById("nameInput");
   const playerList = document.getElementById("playerList");
   const clearBtn = document.getElementById("adminClearBtn");
+  const isAdminPage = window.location.pathname.includes("admin");
 
-  let allPlayers = [];
-  let playerName = "";
-  let currentCaptainId = null;
-
-  // Prefill player name from session info
   fetch("/api/session-info", { credentials: "include" })
-    .then((res) => {
-      if (!res.ok) throw new Error("Not authenticated");
-      return res.json();
-    })
+    .then((res) => res.json())
     .then((data) => {
-      if (data.username) {
-        nameInput.value = data.username;
-        playerName = data.username;
-      }
+      if (!data?.username) throw new Error("Not authenticated");
 
-      if (attendBtn) {
-        attendBtn.onclick = () => {
-          const name = nameInput.value.trim();
-          if (name) {
-            playerName = name;
-            socket.emit("attend", name);
-            console.log("[Client] Attending as:", name);
-          }
-        };
-      }
+      playerName = data.username;
+      playerUsername = data.username;
+      isAdmin = data.role === 3;
+      nameInput.value = playerName;
+
+      socket.emit("attend", playerName);
+
+      attendBtn?.addEventListener("click", () => {
+        if (!playerName) return;
+        socket.emit("attend", playerName);
+      });
     })
-    .catch(() => {
-      window.location.href = "/login.html";
-    });
+    .catch(() => (window.location.href = "/login.html"));
 
-  // Clear session
-  if (clearBtn) {
-    clearBtn.onclick = () => {
-      if (
-        confirm(
-          "Clear everything? This will remove all players and reset the system."
-        )
-      ) {
-        socket.emit("clearSession");
-      }
-    };
-  }
+  clearBtn?.addEventListener("click", () => {
+    if (confirm("Clear everything?")) {
+      socket.emit("clearSession");
+    }
+  });
+
+  socket.on("disconnect", () => {
+    console.warn("[Socket] Disconnected");
+  });
 
   socket.on("playerPoolUpdate", (players) => {
     allPlayers = players;
-    let foundSelf = false;
+    let foundSelf = players.some((p) => p.name === playerName);
 
     playerList.innerHTML = `
-      <h2 class="text-xl font-semibold mb-2 text-left">Players in Queue:</h2>
+      <h2 class="text-xl font-semibold mb-2 text-left">
+        Players in Queue: <span class="text-green-400">${
+          players.length
+        }/10</span>
+      </h2>
       <ul class="list-inside space-y-1 text-gray-300 text-left">
         ${players
           .map((p) => {
-            const rankTier = getPremierRankLabel(p.rank);
-            const badge = p.rank
-              ? `
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full font-semibold text-xs text-white ${rankTier.color} shadow-md border-2 border-white">
-              ${p.rank}
-            </span>`
-              : "";
-            if (p.name === playerName) foundSelf = true;
+            const tier = getPremierRankLabel(p.rank);
             return `
-            <li class="flex justify-between items-center">
+              <li class="flex justify-between items-center">
               <span>${p.name}</span>
-              ${badge}
-            </li>`;
+                ${
+                  isAdmin && isAdminPage
+                    ? `<button data-kick="${p.id}" class="ml-2 text-red-400 hover:text-red-600 text-sm">Kick</button>`
+                    : ""
+                }
+                ${
+                  p.rank
+                    ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs text-white ${tier.color} border-2 border-white">${p.rank}</span>`
+                    : ""
+                }
+              </li>`;
           })
           .join("")}
-      </ul>
-    `;
+      </ul>`;
+
+    // Admin kick handler
+    if (isAdmin && isAdminPage) {
+      document.querySelectorAll("button[data-kick]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const playerId = btn.getAttribute("data-kick");
+          if (confirm("Kick this player from the lobby?")) {
+            socket.emit("kickPlayer", { playerId });
+          }
+        });
+      });
+    }
 
     if (foundSelf) {
       nameInput.disabled = true;
@@ -86,7 +109,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  socket.on("youAreCaptain", () => {
+  socket.on("youAreCaptain", () =>
     Toastify({
       text: "You are a Captain! Get ready to pick your team.",
       duration: 4000,
@@ -94,14 +117,22 @@ window.addEventListener("DOMContentLoaded", () => {
       gravity: "top",
       position: "center",
       backgroundColor: "#10b981",
-      stopOnFocus: true,
-    }).showToast();
-  });
+    }).showToast()
+  );
 
-  function renderDraftUI(availablePlayers, teamA, teamB, captainId) {
+  socket.on("yourTurnToPick", renderDraftUpdate);
+  socket.on("draftUpdate", renderDraftUpdate);
+
+  function renderDraftUpdate({
+    teamA,
+    teamB,
+    availablePlayers,
+    currentCaptain,
+  }) {
+    currentCaptainId = currentCaptain;
+    const isPicking = playerUsername === currentCaptain;
     const availableIds = new Set(availablePlayers.map((p) => p.id));
     const teamMap = new Map();
-    const isPicking = socket.id === captainId;
 
     teamA.forEach((p) => teamMap.set(p.id, "Alpha"));
     teamB.forEach((p) => teamMap.set(p.id, "Beta"));
@@ -117,7 +148,6 @@ window.addEventListener("DOMContentLoaded", () => {
       <ul class="space-y-3">
         ${allPlayers
           .map((p) => {
-            const isAvailable = availableIds.has(p.id);
             const team = teamMap.get(p.id);
             const teamLabel = team
               ? `<span class="ml-2 text-sm font-semibold text-${
@@ -126,63 +156,35 @@ window.addEventListener("DOMContentLoaded", () => {
               : "";
 
             return `
-            <li>
-              <button 
-                data-id="${p.id}" 
-                class="w-full px-4 py-2 rounded text-black font-medium transition ${
-                  isAvailable
-                    ? isPicking
-                      ? "bg-yellow-500 hover:bg-yellow-600 cursor-pointer"
-                      : "bg-yellow-400 opacity-60 cursor-not-allowed"
-                    : "bg-gray-600 opacity-50 cursor-not-allowed"
-                }"
-                ${isAvailable && isPicking ? "" : "disabled"}
-              >
-                ${p.name} ${teamLabel}
-              </button>
-            </li>
-          `;
+              <li>
+                <button 
+                  data-id="${p.id}" 
+                  class="w-full px-4 py-2 rounded text-black font-medium transition ${
+                    availableIds.has(p.id)
+                      ? isPicking
+                        ? "bg-yellow-500 hover:bg-yellow-600"
+                        : "bg-yellow-400 opacity-60 cursor-not-allowed"
+                      : "bg-gray-600 opacity-50 cursor-not-allowed"
+                  }"
+                  ${availableIds.has(p.id) && isPicking ? "" : "disabled"}
+                >
+                  ${p.name} ${teamLabel}
+                </button>
+              </li>`;
           })
           .join("")}
-      </ul>
-    `;
+      </ul>`;
 
     if (isPicking) {
-      document.querySelectorAll("button[data-id]").forEach((btn) => {
-        btn.onclick = () => {
+      document.querySelectorAll("button[data-id]").forEach((btn) =>
+        btn.addEventListener("click", () => {
           const id = btn.getAttribute("data-id");
           socket.emit("pickPlayer", { playerId: id });
           btn.classList.add("scale-90", "opacity-50");
-        };
-      });
+        })
+      );
     }
   }
-
-  socket.on(
-    "yourTurnToPick",
-    ({ availablePlayers, teamA = [], teamB = [], currentCaptain }) => {
-      currentCaptainId = currentCaptain;
-      renderDraftUI(availablePlayers, teamA, teamB, currentCaptainId);
-    }
-  );
-
-  socket.on(
-    "draftUpdate",
-    ({ teamA, teamB, availablePlayers, currentCaptain }) => {
-      currentCaptainId = currentCaptain;
-      renderDraftUI(availablePlayers, teamA, teamB, currentCaptainId);
-    }
-  );
-
-  socket.on("toast", ({ type, message }) => {
-    Toastify({
-      text: message,
-      duration: 5000,
-      gravity: "top",
-      position: "center",
-      backgroundColor: type === "error" ? "#ef4444" : "#3b82f6",
-    }).showToast();
-  });
 
   socket.on("draftComplete", ({ teamA, teamB }) => {
     Toastify({
@@ -198,42 +200,15 @@ window.addEventListener("DOMContentLoaded", () => {
       `
       <p class="text-green-300 text-center font-bold mt-4">
         Draft Complete!
-      </p>
-    `;
+      </p>`;
   });
 
   socket.on("mapVotingStarted", ({ remainingMaps, currentCaptain }) => {
-    const isCaptain = socket.id === currentCaptain;
-
-    playerList.innerHTML = `
-      <h2 class="text-xl font-semibold mb-4">Map Voting</h2>
-      <p class="mb-2">${
-        isCaptain ? "Your turn to ban a map" : "Waiting for other captain..."
-      }</p>
-      <ul class="grid grid-cols-2 gap-4">
-        ${remainingMaps
-          .map(
-            (map) => `
-          <li>
-            <button data-map="${map}" class="w-full px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white ${
-              !isCaptain ? "opacity-50 cursor-not-allowed" : ""
-            }">
-              ${map}
-            </button>
-          </li>`
-          )
-          .join("")}
-      </ul>
-    `;
-
-    if (isCaptain) {
-      document.querySelectorAll("button[data-map]").forEach((btn) => {
-        btn.onclick = () => {
-          const map = btn.getAttribute("data-map");
-          socket.emit("banMap", { map });
-        };
-      });
-    }
+    renderMapVoting(
+      remainingMaps,
+      currentCaptain,
+      playerUsername === currentCaptain
+    );
   });
 
   socket.on("mapChosen", ({ finalMap, teamA, teamB }) => {
@@ -250,13 +225,29 @@ window.addEventListener("DOMContentLoaded", () => {
         Final Map: ${finalMap.toUpperCase()}
       </h2>
       ${renderTeams(teamA, teamB)}
-      <p class="text-center text-gray-300 mt-6">
-        Prepare to load into <strong>${finalMap.toUpperCase()}</strong>.
+      <div class="text-center text-gray-300 mt-6 space-y-2">
+      <p>
+        IP: <strong class="text-white">connect cs2comp.datho.st:25876; password tawnet</strong>
       </p>
-      <p class="text-center text-gray-300 mt-6">
-        IP: <strong><a href="steam://connect/cs2comp.datho.st:25876/tawnet" class="text-blue-400 underline">connect cs2comp.datho.st:25876; password tawnet</a></strong>.
+
+      <button
+        id="copyConnectBtn"
+        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
+      >
+        Copy IP
+      </button>
+
+      <p>
+        <a
+          href="steam://run/730//+connect%20cs2comp.datho.st:25876"
+          class="text-blue-400 underline"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Launch CS2 via Steam
+        </a>
       </p>
-    `;
+    </div>`;
   });
 
   socket.on("sessionStarted", ({ teamA, teamB, mode }) => {
@@ -267,9 +258,97 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  socket.on("sessionState", (state) => {
+    console.log("[Client] Received session state:", state);
+
+    if (!state.sessionStarted) {
+      console.log("[Client] sessionStarted is false → show attend screen");
+      return;
+    }
+
+    const isCaptain = playerUsername === state.veto?.currentCaptain;
+    console.log("[Client] isCaptain:", isCaptain);
+
+    if (state.veto?.remainingMaps?.length > 1) {
+      console.log("[Client] Map voting in progress, rendering map voting...");
+      renderMapVoting(
+        state.veto.remainingMaps,
+        state.veto.currentCaptain,
+        isCaptain
+      );
+      return;
+    }
+
+    if (state.veto?.remainingMaps?.length === 1) {
+      console.log("[Client] Map voting complete, showing final map...");
+      const finalMap = state.veto.remainingMaps[0];
+      playerList.innerHTML = `
+      <h2 class="text-2xl font-bold text-green-400 text-center mb-4">
+        Final Map: ${finalMap.toUpperCase()}
+      </h2>
+      ${renderTeams(state.draft.teamA, state.draft.teamB)}
+      <div class="text-center text-gray-300 mt-6 space-y-2">
+      <p>
+        IP: <strong class="text-white">connect cs2comp.datho.st:25876; password tawnet</strong>
+      </p>
+
+      <button
+        id="copyConnectBtn"
+        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
+      >
+        Copy IP
+      </button>
+
+      <p>
+        <a
+          href="steam://run/730//+connect%20cs2comp.datho.st:25876"
+          class="text-blue-400 underline"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Launch CS2 via Steam
+        </a>
+      </p>
+    </div>
+`;
+      const copyBtn = document.getElementById("copyConnectBtn");
+      if (copyBtn) {
+        copyBtn.addEventListener("click", () => {
+          const connectCmd = "connect cs2comp.datho.st:25876; password tawnet";
+          navigator.clipboard.writeText(connectCmd).then(() => {
+            Toastify({
+              text: "Copied IP!",
+              duration: 3000,
+              gravity: "top",
+              position: "center",
+              backgroundColor: "#4ade80",
+            }).showToast();
+          });
+        });
+      }
+
+      return;
+    }
+
+    if (state.draft?.availablePlayers?.length > 0) {
+      console.log("[Client] Draft in progress, rendering draft update...");
+      if (playerUsername === state.draft.currentCaptain) {
+        renderDraftUpdate(state.draft);
+      } else {
+        socket.emit("requestDraftUpdate");
+      }
+      return;
+    }
+
+    if (state.draft?.teamA && state.draft?.teamB) {
+      console.log("[Client] Draft complete, no map vote yet → rendering teams");
+      playerList.innerHTML = renderTeams(state.draft.teamA, state.draft.teamB);
+    }
+  });
+
   socket.on("sessionReset", () => {
     Toastify({
-      text: "Session has been cleared by admin.",
+      text: "Lobby has been reset by admin.",
       duration: 4000,
       gravity: "top",
       position: "center",
@@ -280,20 +359,23 @@ window.addEventListener("DOMContentLoaded", () => {
     nameInput.disabled = false;
     attendBtn.disabled = false;
     attendBtn.textContent = "Join Queue";
-    nameInput.value = "";
+
+    if (playerUsername) {
+      nameInput.value = playerUsername;
+    } else {
+      nameInput.value = "";
+    }
   });
 
-  socket.on("warning", (message) => {
+  socket.on("warning", (message) =>
     Toastify({
       text: message,
       duration: 4000,
-      close: true,
       gravity: "top",
       position: "right",
       backgroundColor: "#f97316",
-      stopOnFocus: true,
-    }).showToast();
-  });
+    }).showToast()
+  );
 
   function renderTeams(teamA, teamB) {
     return `
@@ -314,7 +396,49 @@ window.addEventListener("DOMContentLoaded", () => {
               .join("")}
           </ul>
         </div>
-      </div>
-    `;
+      </div>`;
+  }
+
+  function renderMapVoting(remainingMaps, currentCaptain, isCaptain) {
+    const isFinalMap = remainingMaps.length === 1;
+
+    playerList.innerHTML = `
+    <h2 class="text-xl font-semibold mb-4">Map Voting</h2>
+    <p class="mb-2">${
+      isFinalMap
+        ? `Final map locked in:`
+        : isCaptain
+        ? "Your turn to ban a map"
+        : "Waiting for other captain..."
+    }</p>
+    <ul class="grid grid-cols-2 gap-4">
+      ${remainingMaps
+        .map(
+          (map) => `
+        <li>
+          <button 
+            data-map="${map}" 
+            class="w-full px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium ${
+              isFinalMap || !isCaptain
+                ? "opacity-50 cursor-not-allowed"
+                : "hover:bg-indigo-700"
+            }"
+            ${isFinalMap || !isCaptain ? "disabled" : ""}
+          >
+            ${map}
+          </button>
+        </li>`
+        )
+        .join("")}
+    </ul>`;
+
+    if (!isFinalMap && isCaptain) {
+      document.querySelectorAll("button[data-map]").forEach((btn) =>
+        btn.addEventListener("click", () => {
+          const map = btn.getAttribute("data-map");
+          socket.emit("banMap", { map });
+        })
+      );
+    }
   }
 });
